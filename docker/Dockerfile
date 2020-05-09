@@ -8,6 +8,8 @@ RUN apt-get update --fix-missing && \
     python3-pip \
     git \
     libpng-dev \
+    libjpeg-dev \
+    zlib1g-dev \
     tzdata \
     pkg-config \
     && apt-get -y clean all
