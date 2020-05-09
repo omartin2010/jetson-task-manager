@@ -63,7 +63,6 @@ def main():
 
 
 def handle_exception(loop, context):
-    # context["message"] will always be there; but context["exception"] may not
     msg = context.get("exception", context["message"])
     log.error(ct.LOG_STARTUP_HANDLE_EXC,
               f'Caught exception: {msg}')

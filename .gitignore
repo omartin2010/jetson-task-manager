@@ -5,3 +5,6 @@
 .vscode/settings.json
 .vscode/.ropeproject
 .env
+build/
+dist/
+*.egg-info
