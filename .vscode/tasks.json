@@ -4,28 +4,22 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "launchObjectDetection",
+            "label": "launchDevContainer",
             "type": "shell",
             "isBackground": false,
             "command": [
-                "export DOCKER_CONTAINER_NAME=objectdetector-dev;",
+                "export DOCKER_CONTAINER_NAME=taskmanager-dev;",
                 "docker rm $DOCKER_CONTAINER_NAME;",
-                "export DISPLAY=:0;",
-                "xhost +si:localuser:root;",
-                "export DOCKER_IMG=objectdetector:latest;",
+                "export DOCKER_IMG=taskmanager:latest;",
                 "export SCRIPT=\"src/startup.py\";",
-                "export CWD=\"/root/jetson-object-detection\";",
-                "export ROOT_CWD=\"/home/omartin/proj/jetson-object-detection\";",
-                "export DOCKER_ARGS=\"--privileged\";",
+                "export CWD=\"/root/jetson-task-manager\";",
+                "export ROOT_CWD=\"/home/omartin/proj/jetson-task-manager\";",
                 "export DOCKER_ARGS=\"$DOCKER_ARGS -d\";",
                 "export DOCKER_ARGS=\"$DOCKER_ARGS --name $DOCKER_CONTAINER_NAME\";",
                 "export DOCKER_ARGS=\"$DOCKER_ARGS --network host\";",
-                "export DOCKER_ARGS=\"$DOCKER_ARGS --env-file .env\";",
-                "export DOCKER_ARGS=\"$DOCKER_ARGS -e DISPLAY=$DISPLAY\";",
-                "export DOCKER_ARGS=\"$DOCKER_ARGS -v /tmp/.X11-unix:/tmp/.X11-unix\";",
                 "export DOCKER_ARGS=\"$DOCKER_ARGS -v $ROOT_CWD:$CWD\";",
                 "export DOCKER_ARGS=\"$DOCKER_ARGS -w $CWD\";",
-                "export CMD=\"python3 -m debugpy --connect 172.17.0.1:9999 $SCRIPT\";",
+                "export CMD=\"python3 -m debugpy --connect 172.17.0.1:9998 $SCRIPT\";",
                 "export CMD_ARGS=\"--config_file config.json\";",
                 "echo args=$DOCKER_ARGS;",
                 "docker run $DOCKER_ARGS $DOCKER_IMG $CMD $CMD_ARGS;",
@@ -43,11 +37,11 @@
             ]
         },
         {
-            "label": "stopObjectDetection",
+            "label": "stopDevContainer",
             "type": "shell",
             "isBackground": false,
             "command": [
-                "docker stop objectdetector-dev;",
+                "docker stop taskmanager-dev;",
             ],
             "options": {
                 "shell": {
