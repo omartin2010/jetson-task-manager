@@ -1,0 +1,7 @@
+**/__pycache__/*
+*.pyc
+.ipynb_checkpoints/*
+*-checkpoint.ipynb
+.vscode/settings.json
+.vscode/.ropeproject
+.env
