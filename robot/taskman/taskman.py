@@ -1,5 +1,5 @@
 # Modules from current package
-from robot.logger import RoboLogger
+from logger import RoboLogger
 
 # Other imports
 import json
@@ -10,20 +10,21 @@ import paho.mqtt.client as mqtt
 import asyncio
 log = RoboLogger.getLogger()
 
-__LOG_TASKMAN_MAIN = 'taskman_main'
-__LOG_TASKMAN_GRACEFUL_SHUTDOWN = 'taskman_graceful_shutdown'
-__LOG_TASKMAN_KILL_SWITCH = 'taskman_kill_switch'
-__LOG_TASKMAN_ASYNC_RUN = 'taskman_async_run'
-__LOG_TASKMAN_ASYNC_WATCHDOG = 'taskman_async_watchdog'
-__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS = \
-    'taskman_event_loop_start_main_tasks'
-__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES = \
-    'taskman_async_process_mqtt_messages'
-__LOG_TASKMAN_THREAD_MQTT_LISTENER = 'taskman_thread_mqtt_listener'
-
 
 class TaskManager(object):
     """ Main class for the task manager running on the jetson """
+
+    # Defines constants for this class
+    __LOG_TASKMAN_MAIN = 'taskman_main'
+    __LOG_TASKMAN_GRACEFUL_SHUTDOWN = 'taskman_graceful_shutdown'
+    __LOG_TASKMAN_KILL_SWITCH = 'taskman_kill_switch'
+    __LOG_TASKMAN_ASYNC_RUN = 'taskman_async_run'
+    __LOG_TASKMAN_ASYNC_WATCHDOG = 'taskman_async_watchdog'
+    __LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS = \
+        'taskman_event_loop_start_main_tasks'
+    __LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES = \
+        'taskman_async_process_mqtt_messages'
+    __LOG_TASKMAN_THREAD_MQTT_LISTENER = 'taskman_thread_mqtt_listener'
 
     def __init__(
             self,
@@ -47,21 +48,21 @@ class TaskManager(object):
         """
         try:
             if s is not None:
-                log.critical(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                log.critical(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                              msg=f'Initiating graceful shutdown now '
                                  f'from received signal {s.name}.')
             else:
-                log.critical(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                log.critical(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                              msg=f'Initiating graceful shutdown now '
                                  f'from non signal.')
             # region asyncio event loop tasks
             try:
                 tasks = [t for t in asyncio.Task.all_tasks(loop=self.eventLoop)
                          if t is not asyncio.Task.current_task()]
-                log.info(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                log.info(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                          msg=f'Cancelling task {len(tasks)} tasks...')
                 [task.cancel() for task in tasks]
-                log.info(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                log.info(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                          msg=f'Gaterhing out put of cancellation '
                              f'of {len(tasks)} tasks...')
                 out_list = await asyncio.gather(
@@ -70,9 +71,9 @@ class TaskManager(object):
                     return_exceptions=True)
                 for idx, out in enumerate(out_list):
                     if isinstance(out, Exception):
-                        log.error(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                        log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                                   msg=f'Exception in stopping task {idx}')
-                log.warning(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                log.warning(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                             msg=f'Done cancelling tasks.')
             except:
                 pass
@@ -83,13 +84,13 @@ class TaskManager(object):
                 self.mqttClient.loop_stop()
                 self.mqttClient.disconnect()
                 if self.mqttClient.is_connected():
-                    log.error(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                    log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                               msg=f'Unable to stop MQTT client.')
                 else:
-                    log.info(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                    log.info(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                              msg=f'Stopped MQTT client.')
             except:
-                log.error(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                           msg=f'Exception in shutting down MQTT')
 
             try:
@@ -99,20 +100,20 @@ class TaskManager(object):
                         event.set()
                         await asyncio.sleep(0.5)
                         if thread.is_alive():
-                            log.error(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                            log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                                       msg=f'Problem shutting down '
                                           f'some threads!')
             except:
-                log.error(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+                log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                           msg=f'Exception in shutting down some '
                               f'of the remaining threads')
 
         except:
-            log.error(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+            log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                       msg=f'Problem in graceful_shutdown')
         finally:
             self.eventLoop.stop()
-            log.warning(__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+            log.warning(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
                         msg=f'Done!')
 
     async def run(
@@ -127,7 +128,7 @@ class TaskManager(object):
         """
         try:
             # Launch the MQTT thread listener
-            log.warning(__LOG_TASKMAN_ASYNC_RUN,
+            log.warning(self.__LOG_TASKMAN_ASYNC_RUN,
                         msg='Launching MQTT thread.')
             self.threadMQTT = threading.Thread(
                 target=self.thread_mqtt_listener, name='thread_mqtt_listener')
@@ -136,7 +137,7 @@ class TaskManager(object):
             self.started_threads[self.threadMQTT] = None
 
             # Launch event loop tasks in the main thread
-            log.warning(__LOG_TASKMAN_ASYNC_RUN,
+            log.warning(self.__LOG_TASKMAN_ASYNC_RUN,
                         msg='Launching asyncio tasks')
             self.event_loop_start_main_tasks()
 
@@ -149,13 +150,13 @@ class TaskManager(object):
             self.critical_threads = [
                 self.threadMQTT,
             ]
-            log.info(__LOG_TASKMAN_ASYNC_RUN,
+            log.info(self.__LOG_TASKMAN_ASYNC_RUN,
                      msg=f'Launching asyncio TASK: "async_watchdog"')
             self.eventLoop.create_task(
                 self.async_watchdog(watchdog_timer=5))
 
         except Exception:
-            log.error(__LOG_TASKMAN_ASYNC_RUN,
+            log.error(self.__LOG_TASKMAN_ASYNC_RUN,
                       f'Error : {traceback.print_exc()}')
 
     def event_loop_start_main_tasks(
@@ -165,22 +166,22 @@ class TaskManager(object):
         """
         try:
             # region Create Async Tasks
-            log.info(__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
+            log.info(self.__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
                      msg=f'Launching asyncio TASK :"process MQTT message"')
             self.async_process_mqtt_messages_task = \
                 self.eventLoop.create_task(
                     self.async_process_mqtt_messages(loopDelay=0.25))
             # endregion
 
-            log.warning(__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
+            log.warning(self.__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
                         msg=f'Asyncio tasks started')
 
         except Exception:
-            log.error(__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
+            log.error(self.__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
                       f'Error : {traceback.print_exc()}')
             raise Exception(f'Error : {traceback.print_exc()}')
         finally:
-            log.warning(__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
+            log.warning(self.__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
                         msg=f'Exiting event_loop_start_main_tasks')
 
     def thread_mqtt_listener(
@@ -195,25 +196,25 @@ class TaskManager(object):
                                 'mqtt']['subscribedTopics']]
 
         def on_connect(client, userdata, flags, rc):
-            log.info(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+            log.info(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                      msg=f'Connected to MQTT broker. Result code {str(rc)}')
             mqtt_connect_result, self.mqtt_connect_mid = client.subscribe(
                 self.mqtt_topics)
             if mqtt_connect_result == mqtt.MQTT_ERR_SUCCESS:
-                log.warning(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+                log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                             msg=f'Successfully subscribed to '
                                 f'topics in input config file')
-                log.debug(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+                log.debug(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                           msg=f'Topics subcribed = {self.mqtt_topics}')
             else:
-                log.error(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+                log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                           'MQTT Broker subscription problem.')
 
         def on_message(client, userdata, message):
             """ callback function used for the mqtt client (called when
             a new message is publisehd to one of the queues we subscribe to)
             """
-            log.info(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+            log.info(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                      msg=f'Received MID {message.mid} : '
                          f'"{str(message.payload)}" '
                          f'on topic {message.topic} with QoS {message.qos}')
@@ -222,17 +223,17 @@ class TaskManager(object):
         def on_disconnect(client, userdata, rc=0):
             """callback for handling disconnects
             """
-            log.warning(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+            log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                         f'Disconnected MQTT result code = {rc}. '
                         f'Should automatically re-connect to broker')
 
         def on_subscribe(client, userdata, mid, granted_qos):
             if mid == self.mqtt_connect_mid:
-                log.debug(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+                log.debug(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                           msg=f'Subscribed to topics. Granted '
                               f'QOS = {granted_qos}')
             else:
-                log.error(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+                log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                           msg=f'Strange... MID does not match '
                               f'self.mqtt_connect_mid')
 
@@ -243,7 +244,7 @@ class TaskManager(object):
                 transport=self.configuration["mqtt"]["brokerProto"])
             self.mqttClient.enable_logger(
                 logger=RoboLogger.getSpecificLogger(
-                    __LOG_TASKMAN_THREAD_MQTT_LISTENER))
+                    self.__LOG_TASKMAN_THREAD_MQTT_LISTENER))
             self.mqttClient.on_subscribe = on_subscribe
             self.mqttClient.on_connect = on_connect
             self.mqttClient.on_disconnect = on_disconnect
@@ -253,10 +254,10 @@ class TaskManager(object):
                 port=self.configuration["mqtt"]["brokerPort"])
             self.mqttClient.loop_forever()
         except Exception:
-            log.error(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+            log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                       f'Error : {traceback.print_exc()}')
         finally:
-            log.warning(__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+            log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
                         msg=f'Exiting MQTT connection thread.')
 
     async def async_process_mqtt_messages(
@@ -268,7 +269,7 @@ class TaskManager(object):
         Args:
             loopDelay: float, delay to sleep at the end of the loop
         """
-        log.warning(__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+        log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
                     msg='Launching MQTT processing async task')
         try:
             while True:
@@ -285,28 +286,28 @@ class TaskManager(object):
                         if currentMQTTMoveMessage.topic == \
                                 'bot/kill_switch':
                             log.warning(
-                                __LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+                                self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
                                 msg='Kill switch activated')
                             self.kill_switch()
                         elif currentMQTTMoveMessage.topic == \
                                 'bot/jetson/configure':
                             log.info(
-                                __LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+                                self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
                                 msg=f'Modifying configuration item...')
                             for k, v in msgdict.items():
                                 if k in dir(self):
-                                    log.info(__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,        # noqa e501
+                                    log.info(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,        # noqa e501
                                              msg=f'Setting attribute self.{k} '
                                                  f'to value {v}')
                                     # Adding / changing configuration
                                     # parameters for the object
                                     self.__setattr__(k, v)
-                                    log.warning(__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,         # noqa e501
+                                    log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,         # noqa e501
                                                 msg=f'After validation, '
                                                     f'attribute self.{k} '
                                                     f'= "{self.__getattribute__(k)}"')             # noqa e501
                                 else:
-                                    log.error(__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,           # noqa e501
+                                    log.error(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,           # noqa e501
                                               msg=f'Attribute self.{k} not '
                                                   f'found. Will not add it.')
                         elif currentMQTTMoveMessage.topic == \
@@ -325,16 +326,16 @@ class TaskManager(object):
                             raise NotImplementedError
                     await asyncio.sleep(loopDelay)
                 except NotImplementedError:
-                    log.warning(__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+                    log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
                                 msg=f'MQTT topic not implemented.')
                 except asyncio.futures.CancelledError:
-                    log.warning(__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+                    log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
                                 msg=f'Cancelled the MQTT dequeing task.')
                     break
                 except Exception:
                     raise
         except Exception:
-            log.error(__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+            log.error(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
                       msg=f'Error: {traceback.print_exc()}')
             raise
 
@@ -375,15 +376,15 @@ class TaskManager(object):
                     raise Exception(f'thread_name : {thread_name} ; '
                                     f'exc_type : {exc_type} ; '
                                     f'exc_obj : {exc_obj} ; ')
-                log.info(__LOG_TASKMAN_ASYNC_WATCHDOG,
+                log.info(self.__LOG_TASKMAN_ASYNC_WATCHDOG,
                          msg=f'Heartbeat OK - Checking again in '
                              f'{watchdog_timer} seconds')
                 await asyncio.sleep(watchdog_timer)
         except asyncio.futures.CancelledError:
-            log.warning(__LOG_TASKMAN_ASYNC_WATCHDOG,
+            log.warning(self.__LOG_TASKMAN_ASYNC_WATCHDOG,
                         msg=f'Cancelled the watchdog task.')
         except Exception:
-            log.critical(__LOG_TASKMAN_ASYNC_WATCHDOG,
+            log.critical(self.__LOG_TASKMAN_ASYNC_WATCHDOG,
                          msg=f'Problem with critical task or thread. '
                              f'Need to quit')
             raise
@@ -395,7 +396,7 @@ class TaskManager(object):
             Kill switch implement to urgently kill processes.
         """
         try:
-            log.warning(__LOG_TASKMAN_KILL_SWITCH,
+            log.warning(self.__LOG_TASKMAN_KILL_SWITCH,
                         'Killing process. - to be implemented.')
         except:
             pass

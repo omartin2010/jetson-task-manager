@@ -8,4 +8,4 @@ __all__ = [
 
 __LOG_TASKMAN_MAIN = 'taskman_main'
 
-log = RoboLogger.getLogger().warning(__LOG_TASKMAN_MAIN, 'taskman imported.')
+log = RoboLogger.getLogger().warning(__LOG_TASKMAN_MAIN, 'module imported.')

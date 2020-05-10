@@ -1,7 +1,7 @@
 # flake8: ignore=E501
+from taskman import TaskManager
 from logger import RoboLogger
 import constant as ct
-from taskman import TaskManager
 import asyncio
 import os
 import sys
@@ -42,7 +42,7 @@ def main():
                     msg='Launching task manager now.')
         loop = asyncio.get_event_loop()
         loop.set_exception_handler(handle_exception)
-        log.warning(ct.LOGGER_OBJECT_DETECTOR_STARTUP,
+        log.warning(ct.LOG_STARTUP_MAIN,
                     msg='Launching runner.')
         signals = (signal.SIGINT, signal.SIGTERM)
         for s in signals:
