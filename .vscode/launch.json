@@ -12,14 +12,14 @@
                 "host": "172.17.0.1",
                 "port": 9998
             },
-            "preLaunchTask":"launchDevContainer",
+            "preLaunchTask":"launchExecContainer",
             "pathMappings": [
                 {
                     "localRoot":"${workspaceFolder}",
                     "remoteRoot": "/root/inferencing"
                 }
             ],
-            "postDebugTask": "stopDevContainer"
+            "postDebugTask": "stopExecContainer"
         }
     ]
 }

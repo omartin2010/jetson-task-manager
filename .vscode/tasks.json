@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "launchDevContainer",
+            "label": "launchExecContainer",
             "type": "shell",
             "isBackground": false,
             "command": [
@@ -37,7 +37,7 @@
             ]
         },
         {
-            "label": "stopDevContainer",
+            "label": "stopExecContainer",
             "type": "shell",
             "isBackground": false,
             "command": [
@@ -54,7 +54,59 @@
             "problemMatcher": [
                 "$eslint-compact"
             ]
+        },
+        {
+            "label": "launchDevContainer",
+            "type": "shell",
+            "isBackground": false,
+            "command": [
+                "export DOCKER_CONTAINER_NAME=taskmanager-dev-container;",
+                "docker rm $DOCKER_CONTAINER_NAME;",
+                "export DOCKER_IMG=taskmanager:latest;",
+                // "export SCRIPT=\"src/startup.py\";",
+                "export CWD=\"/root/jetson-task-manager\";",
+                "export ROOT_CWD=\"/home/omartin/proj/jetson-task-manager\";",
+                "export DOCKER_ARGS=\"$DOCKER_ARGS --interactive\";",
+                "export DOCKER_ARGS=\"$DOCKER_ARGS --name $DOCKER_CONTAINER_NAME\";",
+                "export DOCKER_ARGS=\"$DOCKER_ARGS --network host\";",
+                "export DOCKER_ARGS=\"$DOCKER_ARGS -v $ROOT_CWD:$CWD\";",
+                "export DOCKER_ARGS=\"$DOCKER_ARGS -w $CWD\";",
+                "export CMD=\"/bin/bash -c \"docker/pip.sh\"\";",
+                "echo args=$DOCKER_ARGS;",
+                "docker run $DOCKER_ARGS $DOCKER_IMG $CMD;",
+            ],
+            "options": {
+                "shell": {
+                    "executable": "/bin/bash",
+                    "args": [
+                        "-c"
+                    ]
+                }
+            },
+            "problemMatcher": [
+                "$eslint-compact"
+            ]
+        },
+        {
+            "label": "stopDevContainer",
+            "type": "shell",
+            "isBackground": false,
+            "command": [
+                "docker stop taskmanager-dev-container;",
+            ],
+            "options": {
+                "shell": {
+                    "executable": "/bin/bash",
+                    "args": [
+                        "-c"
+                    ]
+                }
+            },
+            "problemMatcher": [
+                "$eslint-compact"
+            ]
         }
 
+ 
     ]
 }
