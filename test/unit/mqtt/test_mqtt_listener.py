@@ -130,7 +130,6 @@ def test_MQTTListener_publish_test(
         running_listener):
     # Confirm if we can publish a message to a test topic
     payload = {'test': 'test'}
-    print(running_listener.__dict__)
     msg = running_listener.mqttClient.publish(
         topic='test',
         payload=json.dumps(payload),

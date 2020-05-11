@@ -9,3 +9,5 @@ build/
 dist/
 *.egg-info
 .cache/v/cache/lastfailed
+.cache/*
+.pytest_cache/*
