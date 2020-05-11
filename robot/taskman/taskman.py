@@ -1,12 +1,11 @@
 # Modules from current package
-from logger import RoboLogger
+from ..logger import RoboLogger
 
 # Other imports
-import json
 import queue
 import traceback
 import threading
-import paho.mqtt.client as mqtt
+# import paho.mqtt.client as mqtt
 import asyncio
 log = RoboLogger.getLogger()
 
@@ -31,7 +30,7 @@ class TaskManager(object):
             configuration: dict,
             loop: asyncio.AbstractEventLoop) -> None:
         self.configuration = configuration
-        self.mqtt_message_queue = queue.Queue()
+        # self.mqtt_message_queue = queue.Queue()
         self.thread_exception_queue = queue.Queue()
         self.started_threads = {}
         self.eventLoop = loop
@@ -79,19 +78,19 @@ class TaskManager(object):
                 pass
             # endregion asyncio event loop tasks
 
-            # Stop MQTT client:
-            try:
-                self.mqttClient.loop_stop()
-                self.mqttClient.disconnect()
-                if self.mqttClient.is_connected():
-                    log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
-                              msg=f'Unable to stop MQTT client.')
-                else:
-                    log.info(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
-                             msg=f'Stopped MQTT client.')
-            except:
-                log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
-                          msg=f'Exception in shutting down MQTT')
+            # # Stop MQTT client:
+            # try:
+            #     self.mqttClient.loop_stop()
+            #     self.mqttClient.disconnect()
+            #     if self.mqttClient.is_connected():
+            #         log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+            #                   msg=f'Unable to stop MQTT client.')
+            #     else:
+            #         log.info(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+            #                  msg=f'Stopped MQTT client.')
+            # except:
+            #     log.error(self.__LOG_TASKMAN_GRACEFUL_SHUTDOWN,
+            #               msg=f'Exception in shutting down MQTT')
 
             try:
                 # Stop remaining threads
@@ -184,160 +183,161 @@ class TaskManager(object):
             log.warning(self.__LOG_TASKMAN_EVENT_LOOP_START_MAIN_TASKS,
                         msg=f'Exiting event_loop_start_main_tasks')
 
-    def thread_mqtt_listener(
-            self):
-        """
-        Description :
-            MQTT Thread launching the loop and subscripbing to the right topics
-        """
-        mqtt_default_qos = 2
-        self.mqtt_topics = [(topic, mqtt_default_qos)
-                            for topic in self.configuration[
-                                'mqtt']['subscribedTopics']]
+    # def thread_mqtt_listener(
+    #         self):
+    #     """
+    #     Description :
+    #         MQTT Thread launching the loop and subscripbing to the right
+    #           topics
+    #     """
+    #     mqtt_default_qos = 2
+    #     self.mqtt_topics = [(topic, mqtt_default_qos)
+    #                         for topic in self.configuration[
+    #                             'mqtt']['subscribedTopics']]
 
-        def on_connect(client, userdata, flags, rc):
-            log.info(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                     msg=f'Connected to MQTT broker. Result code {str(rc)}')
-            mqtt_connect_result, self.mqtt_connect_mid = client.subscribe(
-                self.mqtt_topics)
-            if mqtt_connect_result == mqtt.MQTT_ERR_SUCCESS:
-                log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                            msg=f'Successfully subscribed to '
-                                f'topics in input config file')
-                log.debug(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                          msg=f'Topics subcribed = {self.mqtt_topics}')
-            else:
-                log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                          'MQTT Broker subscription problem.')
+    #     def on_connect(client, userdata, flags, rc):
+    #         log.info(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                  msg=f'Connected to MQTT broker. Result code {str(rc)}')
+    #         mqtt_connect_result, self.mqtt_connect_mid = client.subscribe(
+    #             self.mqtt_topics)
+    #         if mqtt_connect_result == mqtt.MQTT_ERR_SUCCESS:
+    #             log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                         msg=f'Successfully subscribed to '
+    #                             f'topics in input config file')
+    #             log.debug(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                       msg=f'Topics subcribed = {self.mqtt_topics}')
+    #         else:
+    #             log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                       'MQTT Broker subscription problem.')
 
-        def on_message(client, userdata, message):
-            """ callback function used for the mqtt client (called when
-            a new message is publisehd to one of the queues we subscribe to)
-            """
-            log.info(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                     msg=f'Received MID {message.mid} : '
-                         f'"{str(message.payload)}" '
-                         f'on topic {message.topic} with QoS {message.qos}')
-            self.mqtt_message_queue.put_nowait(message)
+    #     def on_message(client, userdata, message):
+    #         """ callback function used for the mqtt client (called when
+    #         a new message is publisehd to one of the queues we subscribe to)
+    #         """
+    #         log.info(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                  msg=f'Received MID {message.mid} : '
+    #                      f'"{str(message.payload)}" '
+    #                      f'on topic {message.topic} with QoS {message.qos}')
+    #         self.mqtt_message_queue.put_nowait(message)
 
-        def on_disconnect(client, userdata, rc=0):
-            """callback for handling disconnects
-            """
-            log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                        f'Disconnected MQTT result code = {rc}. '
-                        f'Should automatically re-connect to broker')
+    #     def on_disconnect(client, userdata, rc=0):
+    #         """callback for handling disconnects
+    #         """
+    #         log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                     f'Disconnected MQTT result code = {rc}. '
+    #                     f'Should automatically re-connect to broker')
 
-        def on_subscribe(client, userdata, mid, granted_qos):
-            if mid == self.mqtt_connect_mid:
-                log.debug(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                          msg=f'Subscribed to topics. Granted '
-                              f'QOS = {granted_qos}')
-            else:
-                log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                          msg=f'Strange... MID does not match '
-                              f'self.mqtt_connect_mid')
+    #     def on_subscribe(client, userdata, mid, granted_qos):
+    #         if mid == self.mqtt_connect_mid:
+    #             log.debug(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                       msg=f'Subscribed to topics. Granted '
+    #                           f'QOS = {granted_qos}')
+    #         else:
+    #             log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                       msg=f'Strange... MID does not match '
+    #                           f'self.mqtt_connect_mid')
 
-        try:
-            self.mqttClient = mqtt.Client(
-                client_id=self.configuration["mqtt"]["clientID"],
-                clean_session=True,
-                transport=self.configuration["mqtt"]["brokerProto"])
-            self.mqttClient.enable_logger(
-                logger=RoboLogger.getSpecificLogger(
-                    self.__LOG_TASKMAN_THREAD_MQTT_LISTENER))
-            self.mqttClient.on_subscribe = on_subscribe
-            self.mqttClient.on_connect = on_connect
-            self.mqttClient.on_disconnect = on_disconnect
-            self.mqttClient.on_message = on_message
-            self.mqttClient.connect(
-                host=self.configuration["mqtt"]["brokerIP"],
-                port=self.configuration["mqtt"]["brokerPort"])
-            self.mqttClient.loop_forever()
-        except Exception:
-            log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                      f'Error : {traceback.print_exc()}')
-        finally:
-            log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
-                        msg=f'Exiting MQTT connection thread.')
+    #     try:
+    #         self.mqttClient = mqtt.Client(
+    #             client_id=self.configuration["mqtt"]["clientID"],
+    #             clean_session=True,
+    #             transport=self.configuration["mqtt"]["brokerProto"])
+    #         self.mqttClient.enable_logger(
+    #             logger=RoboLogger.getSpecificLogger(
+    #                 self.__LOG_TASKMAN_THREAD_MQTT_LISTENER))
+    #         self.mqttClient.on_subscribe = on_subscribe
+    #         self.mqttClient.on_connect = on_connect
+    #         self.mqttClient.on_disconnect = on_disconnect
+    #         self.mqttClient.on_message = on_message
+    #         self.mqttClient.connect(
+    #             host=self.configuration["mqtt"]["brokerIP"],
+    #             port=self.configuration["mqtt"]["brokerPort"])
+    #         self.mqttClient.loop_forever()
+    #     except Exception:
+    #         log.error(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                   f'Error : {traceback.print_exc()}')
+    #     finally:
+    #         log.warning(self.__LOG_TASKMAN_THREAD_MQTT_LISTENER,
+    #                     msg=f'Exiting MQTT connection thread.')
 
-    async def async_process_mqtt_messages(
-            self,
-            loopDelay: float = 0.25):
-        """
-        Description : This function receives the messages from MQTT to the
-            task manager.
-        Args:
-            loopDelay: float, delay to sleep at the end of the loop
-        """
-        log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
-                    msg='Launching MQTT processing async task')
-        try:
-            while True:
-                try:
-                    if self.mqtt_message_queue.empty() is False:
-                        # Remove the first in the list, will pause
-                        # until there is something
-                        currentMQTTMoveMessage = self.mqtt_message_queue.get()
-                        # Decode message received
-                        msgdict = json.loads(
-                            currentMQTTMoveMessage.payload.decode('utf-8'))
+    # async def async_process_mqtt_messages(
+    #         self,
+    #         loopDelay: float = 0.25):
+    #     """
+    #     Description : This function receives the messages from MQTT to the
+    #         task manager.
+    #     Args:
+    #         loopDelay: float, delay to sleep at the end of the loop
+    #     """
+    #     log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+    #                 msg='Launching MQTT processing async task')
+    #     try:
+    #         while True:
+    #             try:
+    #                 if self.mqtt_message_queue.empty() is False:
+    #                     # Remove the first in the list, will pause
+    #                     # until there is something
+    #                     currentMQTTMoveMessage = self.mqtt_message_queue.get()
+    #                     # Decode message received
+    #                     msgdict = json.loads(
+    #                         currentMQTTMoveMessage.payload.decode('utf-8'))
 
-                        # Check if need to shut down
-                        if currentMQTTMoveMessage.topic == \
-                                'bot/kill_switch':
-                            log.warning(
-                                self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
-                                msg='Kill switch activated')
-                            self.kill_switch()
-                        elif currentMQTTMoveMessage.topic == \
-                                'bot/jetson/configure':
-                            log.info(
-                                self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
-                                msg=f'Modifying configuration item...')
-                            for k, v in msgdict.items():
-                                if k in dir(self):
-                                    log.info(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,        # noqa e501
-                                             msg=f'Setting attribute self.{k} '
-                                                 f'to value {v}')
-                                    # Adding / changing configuration
-                                    # parameters for the object
-                                    self.__setattr__(k, v)
-                                    log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,         # noqa e501
-                                                msg=f'After validation, '
-                                                    f'attribute self.{k} '
-                                                    f'= "{self.__getattribute__(k)}"')             # noqa e501
-                                else:
-                                    log.error(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,           # noqa e501
-                                              msg=f'Attribute self.{k} not '
-                                                  f'found. Will not add it.')
-                        elif currentMQTTMoveMessage.topic == \
-                                'bot/jetson/logger':
-                            # Changing the logging level on the fly...
-                            log.setLevel(
-                                msgdict['logger'],
-                                lvl=msgdict['level'])
-                        elif currentMQTTMoveMessage.topic == \
-                                'bot/logger/multiple':
-                            # Changing the logging level on the fly for
-                            # multiple loggers at a time
-                            for logger, level in msgdict.items():
-                                log.setLevel(logger, level)
-                        else:
-                            raise NotImplementedError
-                    await asyncio.sleep(loopDelay)
-                except NotImplementedError:
-                    log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
-                                msg=f'MQTT topic not implemented.')
-                except asyncio.futures.CancelledError:
-                    log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
-                                msg=f'Cancelled the MQTT dequeing task.')
-                    break
-                except Exception:
-                    raise
-        except Exception:
-            log.error(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
-                      msg=f'Error: {traceback.print_exc()}')
-            raise
+    #                     # Check if need to shut down
+    #                     if currentMQTTMoveMessage.topic == \
+    #                             'bot/kill_switch':
+    #                         log.warning(
+    #                             self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+    #                             msg='Kill switch activated')
+    #                         self.kill_switch()
+    #                     elif currentMQTTMoveMessage.topic == \
+    #                             'bot/jetson/configure':
+    #                         log.info(
+    #                             self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+    #                             msg=f'Modifying configuration item...')
+    #                         for k, v in msgdict.items():
+    #                             if k in dir(self):
+    #                                 log.info(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,        # noqa e501
+    #                                          msg=f'Setting attribute self.{k} '
+    #                                              f'to value {v}')
+    #                                 # Adding / changing configuration
+    #                                 # parameters for the object
+    #                                 self.__setattr__(k, v)
+    #                                 log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,         # noqa e501
+    #                                             msg=f'After validation, '
+    #                                                 f'attribute self.{k} '
+    #                                                 f'= "{self.__getattribute__(k)}"')             # noqa e501
+    #                             else:
+    #                                 log.error(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,           # noqa e501
+    #                                           msg=f'Attribute self.{k} not '
+    #                                               f'found. Will not add it.')
+    #                     elif currentMQTTMoveMessage.topic == \
+    #                             'bot/jetson/logger':
+    #                         # Changing the logging level on the fly...
+    #                         log.setLevel(
+    #                             msgdict['logger'],
+    #                             lvl=msgdict['level'])
+    #                     elif currentMQTTMoveMessage.topic == \
+    #                             'bot/logger/multiple':
+    #                         # Changing the logging level on the fly for
+    #                         # multiple loggers at a time
+    #                         for logger, level in msgdict.items():
+    #                             log.setLevel(logger, level)
+    #                     else:
+    #                         raise NotImplementedError
+    #                 await asyncio.sleep(loopDelay)
+    #             except NotImplementedError:
+    #                 log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+    #                             msg=f'MQTT topic not implemented.')
+    #             except asyncio.futures.CancelledError:
+    #                 log.warning(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+    #                             msg=f'Cancelled the MQTT dequeing task.')
+    #                 break
+    #             except Exception:
+    #                 raise
+    #     except Exception:
+    #         log.error(self.__LOG_TASKMAN_ASYNC_PROCESS_MQTT_MESSAGES,
+    #                   msg=f'Error: {traceback.print_exc()}')
+    #         raise
 
     async def async_watchdog(
             self,

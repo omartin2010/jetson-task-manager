@@ -1,6 +1,5 @@
 # flake8: ignore=E501
-from taskman import TaskManager
-from logger import RoboLogger
+from robot import TaskManager, RoboLogger
 import constant as ct
 import asyncio
 import os
