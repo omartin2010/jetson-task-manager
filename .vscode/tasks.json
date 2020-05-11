@@ -63,7 +63,6 @@
                 "export DOCKER_CONTAINER_NAME=taskmanager-dev-container;",
                 "docker rm $DOCKER_CONTAINER_NAME;",
                 "export DOCKER_IMG=taskmanager:latest;",
-                // "export SCRIPT=\"src/startup.py\";",
                 "export CWD=\"/root/jetson-task-manager\";",
                 "export ROOT_CWD=\"/home/omartin/proj/jetson-task-manager\";",
                 "export DOCKER_ARGS=\"$DOCKER_ARGS --interactive\";",
