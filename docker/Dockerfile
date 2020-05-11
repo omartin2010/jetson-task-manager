@@ -26,8 +26,9 @@ RUN pip3 install -U pip \
 ENV MPLLOCALFREETYPE=1
 RUN pip3 install jupyter matplotlib image
 RUN pip3 install jupyterlab flake8 debugpy paho-mqtt
+RUN pip3 install pytest --upgrade
 
 WORKDIR /app
-COPY config.json /app
-COPY src/*.py /app/
+COPY /app/config.json /app/
+COPY /app/*.py /app/
 CMD [ "/bin/sh", "-c", "python3 startup.py --config_file config.json"]
