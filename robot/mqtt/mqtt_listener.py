@@ -71,7 +71,6 @@ class MQTTListener(object):
         except Exception:
             raise
 
-
     def graceful_shutdown(
             self,
             s=None) -> None:

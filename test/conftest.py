@@ -9,6 +9,8 @@ def pytest_addoption(parser):
 @pytest.fixture(scope='session')
 def config_file(request):
     config_file_value = request.config.option.config_file
+    # TEMP FIX FOR VSCODE ISSUE
+    return "app/config.json"
     if config_file_value is None:
         print(f'config_file_value = {config_file_value}')
         pytest.skip()

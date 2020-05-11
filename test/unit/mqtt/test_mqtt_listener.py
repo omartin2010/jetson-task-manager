@@ -113,7 +113,6 @@ def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
     assert 'publishing topic has to be a string :' in str(excinfo.value)
 
 
-
 def test_MQTTListener_run(running_listener):
     # validate if variable confirms it
     assert running_listener.running is True
