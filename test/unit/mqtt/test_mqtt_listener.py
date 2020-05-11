@@ -88,6 +88,14 @@ def test_MQTTListener_bad_inputs_keys_subscribedTopics(mqtt_config):
         'subscribedTopics has to be a list of strings'
 
 
+def test_MQTT_Listener_bad_inputs_values_subscribedTopics(mqtt_config):
+    with pytest.raises(TypeError) as excinfo:
+        conf_dict = deepcopy(mqtt_config)
+        conf_dict['subscribedTopics'] = [123]
+        MQTTListener(conf_dict)
+    assert 'subscribed topic has to be a string :' in str(excinfo.value)
+
+
 def test_MQTTListener_bad_inputs_keys_publishingTopics(mqtt_config):
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
@@ -95,6 +103,15 @@ def test_MQTTListener_bad_inputs_keys_publishingTopics(mqtt_config):
         MQTTListener(conf_dict)
     assert str(excinfo.value) == \
         'publishingTopics has to be a list of strings'
+
+
+def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
+    with pytest.raises(TypeError) as excinfo:
+        conf_dict = deepcopy(mqtt_config)
+        conf_dict['publishingTopics'] = [123]
+        MQTTListener(conf_dict)
+    assert 'publishing topic has to be a string :' in str(excinfo.value)
+
 
 
 def test_MQTTListener_run(running_listener):

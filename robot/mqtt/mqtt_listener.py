@@ -37,7 +37,7 @@ class MQTTListener(object):
         """
         try:
             if not isinstance(mqtt_configuration, dict):
-                raise TypeError
+                raise TypeError('mqtt_configuration has to be a dictionnary')
             diff = list(
                 set(self.__REQUIRED_KEYS) - set(mqtt_configuration.keys()))
             if len(diff) != 0:
@@ -54,14 +54,23 @@ class MQTTListener(object):
             if not isinstance(mqtt_configuration['subscribedTopics'], list):
                 raise ValueError(f'subscribedTopics has to be a list '
                                  f'of strings')
+            for topic in mqtt_configuration['subscribedTopics']:
+                if not isinstance(topic, str):
+                    raise TypeError(f'subscribed topic has to be '
+                                    f'a string : {str(topic)}')
             if not isinstance(mqtt_configuration['publishingTopics'], list):
                 raise ValueError(f'publishingTopics has to be a list '
                                  f'of strings')
+            for topic in mqtt_configuration['publishingTopics']:
+                if not isinstance(topic, str):
+                    raise TypeError(f'publishing topic has to be '
+                                    f'a string : {str(topic)}')
             self.mqtt_configuration = mqtt_configuration
             self.mqtt_message_queue = queue.Queue()
             self.running = False
-        except TypeError:
-            raise TypeError('mqtt_configuration has to be a dictionnary')
+        except Exception:
+            raise
+
 
     def graceful_shutdown(
             self,
