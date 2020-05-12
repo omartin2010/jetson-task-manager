@@ -181,3 +181,10 @@ def test_MQTTListener_graceful_shutdown_default_params(running_listener):
 def test_MQTTListener_graceful_shutdown_good_input(running_listener):
     running_listener.graceful_shutdown(signal.SIGINT)
     assert running_listener.mqttClient.is_connected() is False
+
+
+
+
+
+
+##### ADD TEST FOR NON RESPONSIVE MQTT ENDPOINT
