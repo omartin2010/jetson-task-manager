@@ -1,4 +1,5 @@
 import pytest
+import json
 import os
 
 
@@ -18,3 +19,16 @@ def config_file(request):
         print(f'config_file_value = {config_file_value}')
         pytest.skip()
     return config_file_value
+
+
+@pytest.fixture(scope='module')
+def mqtt_config(config_file):
+    with open(config_file, 'r') as f:
+        taskmanConfiguration = json.load(f)
+    mqtt_config = taskmanConfiguration['mqtt']
+    return mqtt_config
+
+
+@pytest.fixture(scope='module')
+def subscribe_to_topics(mqtt_config):
+    return mqtt_config['subscribedTopics']

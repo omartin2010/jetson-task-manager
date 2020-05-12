@@ -173,7 +173,13 @@ class MQTTListener(object):
                  msg=f'Received MID {message.mid} : '
                      f'"{str(message.payload)}" '
                      f'on topic {message.topic} with QoS {message.qos}')
-        self.mqtt_message_queue.put_nowait(message)
+        try:
+            self.mqtt_message_queue.put(
+                (message.topic, message.payload.decode('utf-8')),
+                block=True,
+                timeout=0.25)
+        except queue.Full:
+            raise queue.Full('Unable to write to mqtt_message_queue')
 
     def on_disconnect(self, client, userdata, rc=0):
         """callback for handling disconnects

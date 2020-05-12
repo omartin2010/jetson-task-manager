@@ -3,6 +3,7 @@ import time
 import json
 import signal
 from robot import MQTTListener
+import paho.mqtt.client as mqtt
 import queue
 from copy import deepcopy
 
@@ -22,19 +23,6 @@ def running_listener(listener):
     return listener
 
 
-@pytest.fixture(scope='module')
-def mqtt_config(config_file):
-    with open(config_file, 'r') as f:
-        taskmanConfiguration = json.load(f)
-    mqtt_config = taskmanConfiguration['mqtt']
-    return mqtt_config
-
-
-@pytest.fixture(scope='module')
-def subscribe_to_topics(mqtt_config):
-    return mqtt_config['subscribedTopics']
-
-
 def test_MQTTListener(listener, mqtt_config):
     assert listener.mqtt_configuration == mqtt_config
     assert isinstance(listener.mqtt_message_queue, queue.Queue) is True
@@ -43,7 +31,8 @@ def test_MQTTListener(listener, mqtt_config):
 def test_MQTTListener_bad_inputs_type(mqtt_config):
     with pytest.raises(TypeError) as excinfo:
         MQTTListener(mqtt_configuration='bob')
-    assert 'mqtt_configuration has to be a dictionnary' == str(excinfo.value)
+    assert str(excinfo.value) == \
+        'mqtt_configuration has to be a dictionnary'
 
 
 def test_MQTTListener_bad_inputs_keys(mqtt_config):
@@ -61,7 +50,8 @@ def test_MQTTListener_bad_inputs_keys_brokerIP(mqtt_config):
         conf_dict = deepcopy(mqtt_config)
         conf_dict['brokerIP'] = 'abc'
         MQTTListener(conf_dict)
-    assert str(excinfo.value) == 'Poorly formatted IP address'
+    assert str(excinfo.value) == \
+        'Poorly formatted IP address'
 
 
 def test_MQTTListener_bad_inputs_keys_brokerProto(mqtt_config):
@@ -69,7 +59,8 @@ def test_MQTTListener_bad_inputs_keys_brokerProto(mqtt_config):
         conf_dict = deepcopy(mqtt_config)
         conf_dict['brokerProto'] = 'abc'
         MQTTListener(conf_dict)
-    assert str(excinfo.value) == 'broker proto has to be tcp'
+    assert str(excinfo.value) == \
+        'broker proto has to be tcp'
 
 
 def test_MQTTListener_bad_inputs_keys_clientID(mqtt_config):
@@ -77,7 +68,8 @@ def test_MQTTListener_bad_inputs_keys_clientID(mqtt_config):
         conf_dict = deepcopy(mqtt_config)
         conf_dict['clientID'] = 123
         MQTTListener(conf_dict)
-    assert str(excinfo.value) == 'clientID has to be a string'
+    assert str(excinfo.value) == \
+        'clientID has to be a string'
 
 
 def test_MQTTListener_bad_inputs_keys_subscribedTopics(mqtt_config):
@@ -138,10 +130,39 @@ def test_MQTTListener_publish_test(
     assert msg.rc == 0
 
 
-def test_MQTTListener_graceful_shutdown_default_params(running_listener):
-    running_listener.graceful_shutdown()
-    time.sleep(1)
-    assert running_listener.mqttClient.is_connected() is False
+def test_MQTTListener_on_message_and_dequeue(
+        running_listener,
+        mqtt_config,
+        subscribe_to_topics):
+    """
+    Description:
+        Tests queuing messages to MQTT and ensuring they are in the queue
+            for further processing.
+    """
+    client = mqtt.Client(
+        client_id='pytest',
+        clean_session=True,
+        transport='tcp')
+    client.connect(
+        host=mqtt_config['brokerIP'],
+        port=mqtt_config['brokerPort'])
+    payload = json.dumps({'test_key': 'test_value'})
+    for topic in subscribe_to_topics:
+        client.publish(topic=topic, payload=payload, qos=1)
+        time.sleep(0.5)
+    assert running_listener.mqtt_message_queue.qsize() == \
+        len(subscribe_to_topics)
+    remaining_topics = deepcopy(subscribe_to_topics)
+    i = 0
+    while i < len(subscribe_to_topics):
+        msg_received_topic, msg_received_payload = \
+            running_listener.mqtt_message_queue.get()
+        assert msg_received_payload == payload
+        assert msg_received_topic in remaining_topics
+        remaining_topics.remove(msg_received_topic)
+        print(f'tested topic {msg_received_topic}')
+        i += 1
+    assert running_listener.mqtt_message_queue.empty()
 
 
 def test_MQTTListener_graceful_shutdown_bad_input(running_listener):
@@ -149,6 +170,12 @@ def test_MQTTListener_graceful_shutdown_bad_input(running_listener):
         running_listener.graceful_shutdown('bob')
     assert str(excinfo.value) == \
         'input parameter \'s\' has to be a signal'
+
+
+def test_MQTTListener_graceful_shutdown_default_params(running_listener):
+    running_listener.graceful_shutdown()
+    time.sleep(1)
+    assert running_listener.mqttClient.is_connected() is False
 
 
 def test_MQTTListener_graceful_shutdown_good_input(running_listener):

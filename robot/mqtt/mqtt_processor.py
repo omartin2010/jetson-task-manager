@@ -1,6 +1,7 @@
 import json
 import asyncio
 import traceback
+import queue
 from ..logger import RoboLogger
 log = RoboLogger.getLogger()
 
@@ -15,13 +16,33 @@ class MQTTProcessor(object):
 
     def __init__(
             self,
-            mqtt_message_queue):
+            mqtt_message_queue: queue.Queue,
+            event_loop: asyncio.BaseEventLoop) -> None:
         """
         Args:
             mqtt_message_queue: queue, receives messages queued from the mqtt
                 listener
+            event_loop : event loop on which to run the process_message task
         """
+        if not isinstance(mqtt_message_queue, queue.Queue):
+            raise TypeError(f'Constructor requires mqtt_message_queue to '
+                            f'be of queue.Queue() class')
+        if not isinstance(event_loop, asyncio.BaseEventLoop):
+            raise TypeError(f'Constructor requires event_loop to be of '
+                            f'asyncio.BaseEventLoop() class')
         self.mqtt_message_queue = mqtt_message_queue
+        self.event_loop = event_loop
+
+    def run(self):
+        """
+        Description
+            Launches the runner (asyncio loop) for the processor.
+        """
+        try:
+            self.event_loop.create_task(
+                self.process_messages(loopDelay=0.25))
+        except:
+            raise
 
     async def process_messages(
             self,

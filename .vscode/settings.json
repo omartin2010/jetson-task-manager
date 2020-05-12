@@ -8,5 +8,6 @@
     "python.testing.pytestArgs": [
         // "--config_file app/config.json",
         "test"
-    ]
+    ],
+    "python.analysis.memory.keepLibraryLocalVariables": true
 }
