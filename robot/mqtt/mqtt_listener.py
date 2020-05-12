@@ -1,4 +1,5 @@
 from ..logger import RoboLogger
+import signal
 import queue
 import paho.mqtt.client as mqtt
 import traceback
@@ -82,6 +83,8 @@ class MQTTListener(object):
         """
         try:
             if s is not None:
+                if s not in signal.Signals:
+                    raise TypeError('input parameter \'s\' has to be a signal')
                 log.critical(self.__LOG_MQTTLISTENER_GRACEFUL_SHUTDOWN,
                              msg=f'Initiating graceful shutdown now '
                                  f'from received signal {s.name}.')
@@ -106,8 +109,7 @@ class MQTTListener(object):
         except:
             raise
 
-    def run(
-            self) -> None:
+    def run(self) -> None:
         """
         Description : starts the listener
         """

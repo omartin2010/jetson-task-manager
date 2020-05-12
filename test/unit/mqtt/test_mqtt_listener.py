@@ -1,6 +1,7 @@
 import pytest
 import time
 import json
+import signal
 from robot import MQTTListener
 import queue
 from copy import deepcopy
@@ -137,7 +138,19 @@ def test_MQTTListener_publish_test(
     assert msg.rc == 0
 
 
-def test_MQTTListener_graceful_shutdown(running_listener):
+def test_MQTTListener_graceful_shutdown_default_params(running_listener):
     running_listener.graceful_shutdown()
     time.sleep(1)
+    assert running_listener.mqttClient.is_connected() is False
+
+
+def test_MQTTListener_graceful_shutdown_bad_input(running_listener):
+    with pytest.raises(TypeError) as excinfo:
+        running_listener.graceful_shutdown('bob')
+    assert str(excinfo.value) == \
+        'input parameter \'s\' has to be a signal'
+
+
+def test_MQTTListener_graceful_shutdown_good_input(running_listener):
+    running_listener.graceful_shutdown(signal.SIGINT)
     assert running_listener.mqttClient.is_connected() is False

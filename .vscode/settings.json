@@ -6,7 +6,7 @@
     "python.testing.cwd": "",
     "python.autoComplete.addBrackets": true,
     "python.testing.pytestArgs": [
-        "--config_file app/config.json",
+        // "--config_file app/config.json",
         "test"
     ]
 }

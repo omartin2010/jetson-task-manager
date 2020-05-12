@@ -1,6 +1,6 @@
 {
     "mqtt":{
-        "brokerIP" : "192.168.32.50",
+        "brokerIP" : "172.17.0.1",
         "brokerPort" : 1883,
         "brokerProto" : "tcp",
         "clientID" : "jetson-task-manager",
