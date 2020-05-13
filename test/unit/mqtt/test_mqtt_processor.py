@@ -14,11 +14,11 @@ def processor():
 
 @pytest.fixture(scope='module')
 def running_processor(processor):
-    thread = threading.Thread(
-        target=func(processor),
-        name='mocked_eventloop')
-    thread.start()
-    print('thread started...')
+    # thread = threading.Thread(
+    #     target=func(processor),
+    #     name='mocked_eventloop')
+    # thread.start()
+    # print('thread started...')
     processor.run()
     time.sleep(1)
     return processor
@@ -31,7 +31,7 @@ def filled_message_queue(subscribe_to_topics):
         data = {
             'test_key': 'test_value'
         }
-        msg_queue.put(topic, data)
+        msg_queue.put((topic, data))
     return msg_queue
 
 
@@ -50,7 +50,8 @@ def test_MQTTProcessor_bad_inputs_event_loop():
          f'asyncio.BaseEventLoop() class')
 
 
-def test_MQTTProcessor_process_message(
+@pytest.mark.asyncio
+async def test_MQTTProcessor_process_message(
         filled_message_queue,
         running_processor):
     """
@@ -61,8 +62,5 @@ def test_MQTTProcessor_process_message(
     running_processor.mqtt_message_queue = filled_message_queue
     start_time = time.time()
     timeout = False
-    while not running_processor.mqtt_message_queue.empty() and not timeout:
-        duration = time.time() - start_time
-        timeout = True if duration > 2 else False
-    running_processor.is_running = False
+    await running_processor.process_messages()
     assert running_processor.mqtt_message_queue.empty()

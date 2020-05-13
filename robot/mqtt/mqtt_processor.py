@@ -42,10 +42,10 @@ class MQTTProcessor(object):
             self.event_loop.create_task(
                 self.process_messages())
             self.is_running = True
-            if not self.event_loop.is_running():
-                log.warning(self.__LOG_MQTTPROCESSOR_RUN,
-                            f'Event loop not running')
-                raise Exception(f'Event loop not running!')
+            # if not self.event_loop.is_running():
+            #     log.warning(self.__LOG_MQTTPROCESSOR_RUN,
+            #                 f'Event loop not running')
+            #     raise Exception(f'Event loop not running!')
         except:
             raise
 
@@ -60,6 +60,10 @@ class MQTTProcessor(object):
         log.warning(self.__LOG_MQTTPROCESSOR_PROCESS_MESSAGES,
                     msg='Launching MQTT processing async task')
         try:
+            if not self.event_loop.is_running():
+                log.warning(self.__LOG_MQTTPROCESSOR_RUN,
+                            f'Event loop not running')
+                raise Exception(f'Event loop not running!')
             while self.is_running:
                 # until there is something
                 topic, msgdict = await self.mqtt_message_queue.get()
