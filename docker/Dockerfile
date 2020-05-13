@@ -26,7 +26,7 @@ RUN pip3 install -U pip \
 ENV MPLLOCALFREETYPE=1
 RUN pip3 install jupyter matplotlib image
 RUN pip3 install jupyterlab flake8 debugpy paho-mqtt
-RUN pip3 install pytest --upgrade
+RUN pip3 install pytest pytest-asyncio --upgrade
 
 WORKDIR /app
 COPY /app/config.json /app/
