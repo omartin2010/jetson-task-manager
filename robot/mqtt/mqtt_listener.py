@@ -1,6 +1,6 @@
 from ..logger import RoboLogger
 import signal
-import queue
+import asyncio
 import paho.mqtt.client as mqtt
 import traceback
 import socket
@@ -67,7 +67,7 @@ class MQTTListener(object):
                     raise TypeError(f'publishing topic has to be '
                                     f'a string : {str(topic)}')
             self.mqtt_configuration = mqtt_configuration
-            self.mqtt_message_queue = queue.Queue()
+            self.mqtt_message_queue = asyncio.Queue()
             self.running = False
         except Exception:
             raise
@@ -174,12 +174,11 @@ class MQTTListener(object):
                      f'"{str(message.payload)}" '
                      f'on topic {message.topic} with QoS {message.qos}')
         try:
-            self.mqtt_message_queue.put(
-                (message.topic, message.payload.decode('utf-8')),
-                block=True,
-                timeout=0.25)
-        except queue.Full:
-            raise queue.Full('Unable to write to mqtt_message_queue')
+            self.mqtt_message_queue.put_nowait(
+                (message.topic,
+                 message.payload.decode('utf-8')))
+        except asyncio.QueueFull:
+            raise asyncio.QueueFull('Unable to write to mqtt_message_queue')
 
     def on_disconnect(self, client, userdata, rc=0):
         """callback for handling disconnects
