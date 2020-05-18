@@ -1,4 +1,6 @@
 import asyncio
+import time
+from robot import TaskManager
 import traceback
 from ..logger import RoboLogger
 log = RoboLogger.getLogger()
@@ -16,22 +18,29 @@ class MQTTProcessor(object):
     def __init__(
             self,
             mqtt_message_queue: asyncio.Queue,
-            event_loop: asyncio.BaseEventLoop) -> None:
+            event_loop: asyncio.BaseEventLoop,
+            taskman: TaskManager) -> None:
         """
         Args:
             mqtt_message_queue: queue, receives messages queued from the mqtt
                 listener
             event_loop : event loop on which to run the process_message task
+            taskmanager : TaskManager, references so that processing of mqtt
+                messages can be sent to the right object
         """
         if not isinstance(mqtt_message_queue, asyncio.Queue):
             raise TypeError(f'Constructor requires mqtt_message_queue to '
-                            f'be of queue.Queue() class')
+                            f'be of asyncio.Queue() class')
         if not isinstance(event_loop, asyncio.BaseEventLoop):
             raise TypeError(f'Constructor requires event_loop to be of '
                             f'asyncio.BaseEventLoop() class')
+        if not isinstance(taskman, TaskManager):
+            raise TypeError(f'Constructor requires taskman to be of '
+                            f'TaskManager() class')
         self.mqtt_message_queue = mqtt_message_queue
         self.event_loop = event_loop
         self.is_running = False
+        self.taskman = taskman
 
     def run(self):
         """
@@ -39,18 +48,19 @@ class MQTTProcessor(object):
             Launches the runner (asyncio loop) for the processor.
         """
         try:
+            if not self.event_loop.is_running():
+                log.warning(self.__LOG_MQTTPROCESSOR_RUN,
+                            f'Event loop not running')
+                raise Exception(f'Event loop not running!')
             self.event_loop.create_task(
                 self.process_messages())
             self.is_running = True
-            # if not self.event_loop.is_running():
-            #     log.warning(self.__LOG_MQTTPROCESSOR_RUN,
-            #                 f'Event loop not running')
-            #     raise Exception(f'Event loop not running!')
         except:
             raise
 
     async def process_messages(
-            self):
+            self,
+            timeout=None):
         """
         Description : This function receives the messages from MQTT to the
             task manager.
@@ -64,16 +74,27 @@ class MQTTProcessor(object):
                 log.warning(self.__LOG_MQTTPROCESSOR_RUN,
                             f'Event loop not running')
                 raise Exception(f'Event loop not running!')
-            while self.is_running:
+            start_time = time.time()
+
+            def cond(timeout, start_time):
+                if timeout is not None:
+                    if time.time() - start_time > timeout:
+                        return False
+                    else:
+                        return True
+                else:
+                    return True
+
+            while cond(timeout, start_time):
                 # until there is something
                 topic, msgdict = await self.mqtt_message_queue.get()
                 # Check if need to shut down
-                if topic == 'bot/kill_switch':
+                if topic == 'robot/taskman/kill_switch':
                     log.warning(
                         self.__LOG_MQTTPROCESSOR_PROCESS_MESSAGES,
                         msg='Kill switch activated')
-                    self.kill_switch()
-                elif topic == 'bot/taskman/configure':
+                    self.taskman.kill_switch()
+                elif topic == 'robot/taskman/configure':
                     log.info(
                         self.__LOG_MQTTPROCESSOR_PROCESS_MESSAGES,
                         msg=f'Modifying configuration item...')
@@ -85,27 +106,24 @@ class MQTTProcessor(object):
                                     f'to value {v}')
                             # Adding / changing configuration
                             # parameters for the object
-                            self.__setattr__(k, v)
+                            self.taskman.__setattr__(k, v)
                             log.warning(
                                 self.__LOG_MQTTPROCESSOR_PROCESS_MESSAGES,
                                 msg=f'After validation, '
                                     f'attribute self.{k} '
-                                    f'= "{self.__getattribute__(k)}"')
+                                    f'= "{self.taskman.__getattribute__(k)}"')
                         else:
                             log.error(
                                 self.__LOG_MQTTPROCESSOR_PROCESS_MESSAGES,
                                 msg=f'Attribute self.{k} not '
                                     f'found. Will not add it.')
-                elif topic == 'bot/taskman/logger':
-                    # Changing the logging level on the fly...
-                    log.setLevel(
-                        msgdict['logger'],
-                        lvl=msgdict['level'])
-                elif topic == 'bot/taskman/multiple':
-                    # Changing the logging level on the fly for
-                    # multiple loggers at a time
+                elif topic == 'robot/taskman/logger/multiple':
+                    # Changing multiple logger levels at once
                     for logger, level in msgdict.items():
                         log.setLevel(logger, level)
+                elif topic == 'robot/taskman/logger':
+                    # Changing the logging level on the fly
+                    log.setLevel(msgdict['logger'], lvl=msgdict['level'])
                 else:
                     raise NotImplementedError
         except NotImplementedError:
@@ -120,4 +138,4 @@ class MQTTProcessor(object):
             raise
         finally:
             log.warning(self.__LOG_MQTTPROCESSOR_PROCESS_MESSAGES,
-                        msg=f'Exiting the process_message corouting.')
+                        msg=f'Exiting the process_message coroutine.')

@@ -6,8 +6,8 @@
     "python.testing.cwd": "",
     "python.autoComplete.addBrackets": true,
     "python.testing.pytestArgs": [
-        // "--config_file app/config.json",
-        "test"
+        "test",
+        "-v"
     ],
     "python.analysis.memory.keepLibraryLocalVariables": true
 }

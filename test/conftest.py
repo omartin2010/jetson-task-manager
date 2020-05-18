@@ -1,5 +1,7 @@
 import pytest
 import json
+from robot import TaskManager
+import asyncio
 import os
 
 
@@ -32,3 +34,8 @@ def mqtt_config(config_file):
 @pytest.fixture(scope='module')
 def subscribe_to_topics(mqtt_config):
     return mqtt_config['subscribedTopics']
+
+
+@pytest.fixture(scope='module')
+def taskman(config_file):
+    return TaskManager(config_file, asyncio.get_event_loop())
