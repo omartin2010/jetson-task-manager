@@ -1,5 +1,7 @@
 from ..logger import RoboLogger
 from ..message import Message
+from ..singleton import Singleton
+
 import signal
 import asyncio
 import paho.mqtt.client as mqtt
@@ -7,15 +9,6 @@ import paho.mqtt.subscribe as subscribe
 import traceback
 import socket
 log = RoboLogger.getLogger()
-
-
-class Singleton(object):
-    _instance = None
-
-    def __new__(class_, *args, **kwargs):
-        if not isinstance(class_._instance, class_):
-            class_._instance = object.__new__(class_, *args, **kwargs)
-        return class_._instance
 
 
 class MQTTEngine(object, Singleton):

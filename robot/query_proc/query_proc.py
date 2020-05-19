@@ -21,6 +21,7 @@ class QueryProcessor(object):
             # Use the out_msg_q of the singleton MQTTEngine
             self.__mqtt_engine = MQTTEngine()
             self.outbound_msg_q = self.__mqtt_engine.out_msg_q
+            self.in_msg_q = asyncio.Queue()
         except:
             pass
 
@@ -40,11 +41,15 @@ class QueryProcessor(object):
                 topic=msg.topic,
                 qos=msg.qos)
             # Wait for incoming response
-            await self.get_response
+            await self.in_msg_q.get()
         except asyncio.QueueFull:
             log.error(self.__LOG_SEND_QUERY, msg=f'Outbound queue is full.')
 
-    def __cb_get_query_response(self):
+    def __cb_get_query_response(
+            self,
+            client,
+            userdata,
+            message):
         """
         Description:
             callback used by query
