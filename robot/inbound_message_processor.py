@@ -12,7 +12,7 @@ import traceback
 log = RoboLogger()
 
 
-class InboundMessageProcessor(Singleton):
+class InboundMessageProcessor(object, metaclass=Singleton):
     """
     Description:
         Class, singleton, to manage inbound messages

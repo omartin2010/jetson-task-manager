@@ -12,7 +12,7 @@ import socket
 log = RoboLogger()
 
 
-class MQTTEngine(Singleton):
+class MQTTEngine(object, metaclass=Singleton):
     """
     Description : Class for the MQTT Engine for the robot
     """

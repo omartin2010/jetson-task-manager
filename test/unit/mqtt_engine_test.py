@@ -10,7 +10,7 @@ from copy import deepcopy
 
 @pytest.fixture(scope='function')
 @pytest.mark.asyncio
-async def listener(config_file, event_loop):
+async def engine(config_file, event_loop):
     with open(config_file, 'r') as f:
         taskmanConfiguration = json.load(f)
     mqtt_config = taskmanConfiguration['mqtt']
@@ -24,10 +24,10 @@ def running_listener(listener):
     return listener
 
 
-def test_MQTTEngine(listener, mqtt_config):
+def test_MQTTEngine(engine, mqtt_config):
     """ Validates that the mqtt_configuration param is of the right type """
-    assert listener.mqtt_configuration == mqtt_config
-    assert isinstance(listener.mqtt_message_queue, asyncio.Queue) is True
+    assert engine.mqtt_configuration == mqtt_config
+    assert isinstance(engine.in_msg_q, asyncio.Queue) is True
 
 
 def test_MQTTEngine_bad_inputs_type(mqtt_config):
