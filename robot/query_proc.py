@@ -21,8 +21,7 @@ class QueryProcessor(object):
                  'out_msg_q',
                  'in_msg_q']
 
-    def __init__(
-            self) -> None:
+    def __init__(self) -> None:
         try:
             # Type and value checking if applicable
             # Use the out_msg_q of the singleton MQTTEngine
@@ -35,8 +34,9 @@ class QueryProcessor(object):
             log.error(self.__LOG_INIT,
                       msg=f'Error initializing query processor')
 
-    async def query(self,
-                    msg: Message = None) -> Message:
+    async def query(
+            self,
+            msg: Message = None) -> Message:
         """
         Description:
             Method used to send add message to the queue. Runs async.

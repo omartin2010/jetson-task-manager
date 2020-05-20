@@ -8,12 +8,13 @@ import paho.mqtt.client as mqtt
 from copy import deepcopy
 
 
-@pytest.fixture(scope='module')
-def listener(config_file):
+@pytest.fixture(scope='function')
+@pytest.mark.asyncio
+async def listener(config_file, event_loop):
     with open(config_file, 'r') as f:
         taskmanConfiguration = json.load(f)
     mqtt_config = taskmanConfiguration['mqtt']
-    return MQTTEngine(mqtt_config)
+    return MQTTEngine(mqtt_config, event_loop)
 
 
 @pytest.fixture(scope='module')
@@ -23,13 +24,13 @@ def running_listener(listener):
     return listener
 
 
-def test_MQTTListener(listener, mqtt_config):
+def test_MQTTEngine(listener, mqtt_config):
     """ Validates that the mqtt_configuration param is of the right type """
     assert listener.mqtt_configuration == mqtt_config
     assert isinstance(listener.mqtt_message_queue, asyncio.Queue) is True
 
 
-def test_MQTTListener_bad_inputs_type(mqtt_config):
+def test_MQTTEngine_bad_inputs_type(mqtt_config):
     """ Validates that with the wrong type, it can't initialize """
     with pytest.raises(TypeError) as excinfo:
         MQTTEngine(mqtt_configuration='bob')
@@ -37,7 +38,7 @@ def test_MQTTListener_bad_inputs_type(mqtt_config):
         'mqtt_configuration has to be a dictionnary'
 
 
-def test_MQTTListener_bad_inputs_keys(mqtt_config):
+def test_MQTTEngine_bad_inputs_keys(mqtt_config):
     """ Validate if missing keys in mqtt_config dict """
     with pytest.raises(KeyError) as excinfo:
         conf_dict = {
@@ -48,7 +49,7 @@ def test_MQTTListener_bad_inputs_keys(mqtt_config):
     assert 'Missing some keys in the config dictionnary' in str(excinfo.value)
 
 
-def test_MQTTListener_bad_inputs_keys_brokerIP(mqtt_config):
+def test_MQTTEngine_bad_inputs_keys_brokerIP(mqtt_config):
     """ Validates format for some keys of the dict """
     with pytest.raises(OSError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
@@ -58,7 +59,7 @@ def test_MQTTListener_bad_inputs_keys_brokerIP(mqtt_config):
         'Poorly formatted IP address'
 
 
-def test_MQTTListener_bad_inputs_keys_brokerProto(mqtt_config):
+def test_MQTTEngine_bad_inputs_keys_brokerProto(mqtt_config):
     """ Validates format for some keys of the dict """
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
@@ -68,7 +69,7 @@ def test_MQTTListener_bad_inputs_keys_brokerProto(mqtt_config):
         'broker proto has to be tcp'
 
 
-def test_MQTTListener_bad_inputs_keys_clientID(mqtt_config):
+def test_MQTTEngine_bad_inputs_keys_clientID(mqtt_config):
     """ Validates format for some keys of the dict """
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
@@ -78,7 +79,7 @@ def test_MQTTListener_bad_inputs_keys_clientID(mqtt_config):
         'clientID has to be a string'
 
 
-def test_MQTTListener_bad_inputs_keys_subscribedTopics(mqtt_config):
+def test_MQTTEngine_bad_inputs_keys_subscribedTopics(mqtt_config):
     """ Validates format for some keys of the dict """
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
@@ -97,7 +98,7 @@ def test_MQTT_Listener_bad_inputs_values_subscribedTopics(mqtt_config):
     assert 'subscribed topic has to be a string :' in str(excinfo.value)
 
 
-def test_MQTTListener_bad_inputs_keys_publishingTopics(mqtt_config):
+def test_MQTTEngine_bad_inputs_keys_publishingTopics(mqtt_config):
     """ Validates format for some keys of the dict """
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
@@ -116,18 +117,18 @@ def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
     assert 'publishing topic has to be a string :' in str(excinfo.value)
 
 
-def test_MQTTListener_run(running_listener):
+def test_MQTTEngine_run(running_listener):
     """ validates if the mqtt listener fixture is running """
     assert running_listener.running is True
 
 
-def test_MQTTListener_connected_topics(running_listener, subscribe_to_topics):
+def test_MQTTEngine_connected_topics(running_listener, subscribe_to_topics):
     """ Confirm if subscribed topics are actually subscribed """
     assert set(running_listener.subscribed_mqtt_topics) == \
         set(subscribe_to_topics)
 
 
-def test_MQTTListener_publish_test(running_listener):
+def test_MQTTEngine_publish_test(running_listener):
     """ Confirm if we can publish a message to a test topic """
     payload = {'test': 'test'}
     msg = running_listener.mqttClient.publish(
@@ -137,7 +138,7 @@ def test_MQTTListener_publish_test(running_listener):
     assert msg.rc == 0
 
 
-def test_MQTTListener_on_message_and_dequeue(
+def test_MQTTEngine_on_message_and_dequeue(
         running_listener,
         mqtt_config,
         subscribe_to_topics):
@@ -172,7 +173,7 @@ def test_MQTTListener_on_message_and_dequeue(
     assert running_listener.mqtt_message_queue.empty()
 
 
-def test_MQTTListener_graceful_shutdown_bad_input(running_listener):
+def test_MQTTEngine_graceful_shutdown_bad_input(running_listener):
     """ Shutdown tests - run at the end """
     with pytest.raises(TypeError) as excinfo:
         running_listener.graceful_shutdown('bob')
@@ -180,14 +181,14 @@ def test_MQTTListener_graceful_shutdown_bad_input(running_listener):
         'input parameter \'s\' has to be a signal'
 
 
-def test_MQTTListener_graceful_shutdown_default_params(running_listener):
+def test_MQTTEngine_graceful_shutdown_default_params(running_listener):
     """ Shutdown tests - run at the end """
     running_listener.graceful_shutdown()
     time.sleep(1)
     assert running_listener.mqttClient.is_connected() is False
 
 
-def test_MQTTListener_graceful_shutdown_good_input(running_listener):
+def test_MQTTEngine_graceful_shutdown_good_input(running_listener):
     """ Shutdown tests - run at the end """
     running_listener.graceful_shutdown(signal.SIGINT)
     assert running_listener.mqttClient.is_connected() is False

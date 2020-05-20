@@ -31,7 +31,6 @@ class MQTTEngine(Singleton):
                        'clientID',
                        'subscribedTopics',
                        'publishingTopics']
-    # log = RoboLogger()
 
     def __init__(
             self,
@@ -43,9 +42,10 @@ class MQTTEngine(Singleton):
         Args:
             mqtt_configuration : dict, configuration dict that tells where to
                 connect, which topics to listen to, etc.
-            event_loop : base
+            event_loop : event loop for the runner
         """
         try:
+            # Type and Value checking
             if not isinstance(mqtt_configuration, dict):
                 raise TypeError('mqtt_configuration has to be a dictionnary')
             diff = list(
