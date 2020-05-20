@@ -1,6 +1,6 @@
-from ..logger import RoboLogger
-from ..message import Message
-from ..singleton import Singleton
+from .logger import RoboLogger
+from .message import Message
+from .singleton import Singleton
 
 import signal
 import asyncio
@@ -8,10 +8,11 @@ import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as subscribe
 import traceback
 import socket
-log = RoboLogger.getLogger()
+
+log = RoboLogger()
 
 
-class MQTTEngine(object, Singleton):
+class MQTTEngine(Singleton):
     """
     Description : Class for the MQTT Engine for the robot
     """
@@ -30,6 +31,7 @@ class MQTTEngine(object, Singleton):
                        'clientID',
                        'subscribedTopics',
                        'publishingTopics']
+    # log = RoboLogger()
 
     def __init__(
             self,
@@ -192,6 +194,22 @@ class MQTTEngine(object, Singleton):
                 port=self.__mqtt_port,
                 client_id=self.__mqtt_client_id,
                 transport=self.__mqtt_transport)
+        except:
+            raise Exception(f'Exception {traceback.print_exc()}')
+        return None
+
+    def unsubscribe_topic(self,
+                          topic: str) -> None:
+        """
+        Description :
+            Quickly subscribes to a topic and registers a callback for
+                responses.
+        """
+        # Type and value checking
+        if not isinstance(topic, str):
+            raise TypeError(f'Topic has to be a string')
+        try:
+            self._mqtt_client.unsubscribe(topic)
         except:
             raise Exception(f'Exception {traceback.print_exc()}')
         return None

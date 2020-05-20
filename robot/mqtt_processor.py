@@ -1,9 +1,10 @@
+from .logger import RoboLogger
+from .taskman import TaskManager
+
 import asyncio
 import time
-from robot import TaskManager
 import traceback
-from ..logger import RoboLogger
-log = RoboLogger.getLogger()
+log = RoboLogger()
 
 
 class MQTTProcessor(object):

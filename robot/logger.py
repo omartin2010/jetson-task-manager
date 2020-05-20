@@ -1,8 +1,10 @@
 # flake8: ignore=E501
+from .singleton import Singleton
+
 import logging
 
 
-class RoboLogger(object):
+class RoboLogger(Singleton):
     """
     Description : Implementation of a logger object for debugging
         independently all parts of the robot
@@ -23,20 +25,20 @@ class RoboLogger(object):
         loggerName : str : name of the logger
         defaultLevel : logging.INFO, ...
         '''
-        if RoboLogger.__instance is not None:
-            raise Exception(f'The RoboLogger class is a singleton - '
-                            f'can\'t create instances.')
-        else:
-            RoboLogger.__instance = self
-            self.defaultLevel = defaultLevel
-            self.__addNewLogger('root', self.defaultLevel)
+        # if RoboLogger.__instance is not None:
+        #     raise Exception(f'The RoboLogger class is a singleton - '
+        #                     f'can\'t create instances.')
+        # else:
+        #    RoboLogger.__instance = self
+        self.defaultLevel = defaultLevel
+        self.__addNewLogger('root', self.defaultLevel)
 
-    @staticmethod
-    def getLogger() -> None:
-        """ static access method """
-        if RoboLogger.__instance is None:
-            RoboLogger()
-        return RoboLogger.__instance
+    # @staticmethod
+    # def getLogger() -> None:
+    #     """ static access method """
+    #     if RoboLogger.__instance is None:
+    #         RoboLogger()
+    #     return RoboLogger.__instance
 
     @staticmethod
     def getSpecificLogger(loggerName: str) -> logging.Logger:

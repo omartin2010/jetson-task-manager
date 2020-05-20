@@ -11,7 +11,7 @@ import traceback
 import signal
 
 
-log = RoboLogger.getLogger()
+log = RoboLogger()
 log.warning(ct.LOG_STARTUP,
             msg="Initial imports are completed.")
 

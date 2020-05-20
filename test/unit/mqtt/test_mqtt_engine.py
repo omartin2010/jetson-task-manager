@@ -3,7 +3,7 @@ import time
 import json
 import signal
 import asyncio
-from robot import MQTTListener
+from robot import MQTTEngine
 import paho.mqtt.client as mqtt
 from copy import deepcopy
 
@@ -13,7 +13,7 @@ def listener(config_file):
     with open(config_file, 'r') as f:
         taskmanConfiguration = json.load(f)
     mqtt_config = taskmanConfiguration['mqtt']
-    return MQTTListener(mqtt_config)
+    return MQTTEngine(mqtt_config)
 
 
 @pytest.fixture(scope='module')
@@ -32,7 +32,7 @@ def test_MQTTListener(listener, mqtt_config):
 def test_MQTTListener_bad_inputs_type(mqtt_config):
     """ Validates that with the wrong type, it can't initialize """
     with pytest.raises(TypeError) as excinfo:
-        MQTTListener(mqtt_configuration='bob')
+        MQTTEngine(mqtt_configuration='bob')
     assert str(excinfo.value) == \
         'mqtt_configuration has to be a dictionnary'
 
@@ -44,7 +44,7 @@ def test_MQTTListener_bad_inputs_keys(mqtt_config):
             "brokerIP": 5,
             "brokerPort": 123
         }
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert 'Missing some keys in the config dictionnary' in str(excinfo.value)
 
 
@@ -53,7 +53,7 @@ def test_MQTTListener_bad_inputs_keys_brokerIP(mqtt_config):
     with pytest.raises(OSError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['brokerIP'] = 'abc'
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert str(excinfo.value) == \
         'Poorly formatted IP address'
 
@@ -63,7 +63,7 @@ def test_MQTTListener_bad_inputs_keys_brokerProto(mqtt_config):
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['brokerProto'] = 'abc'
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert str(excinfo.value) == \
         'broker proto has to be tcp'
 
@@ -73,7 +73,7 @@ def test_MQTTListener_bad_inputs_keys_clientID(mqtt_config):
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['clientID'] = 123
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert str(excinfo.value) == \
         'clientID has to be a string'
 
@@ -83,7 +83,7 @@ def test_MQTTListener_bad_inputs_keys_subscribedTopics(mqtt_config):
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['subscribedTopics'] = 123
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert str(excinfo.value) == \
         'subscribedTopics has to be a list of strings'
 
@@ -93,7 +93,7 @@ def test_MQTT_Listener_bad_inputs_values_subscribedTopics(mqtt_config):
     with pytest.raises(TypeError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['subscribedTopics'] = [123]
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert 'subscribed topic has to be a string :' in str(excinfo.value)
 
 
@@ -102,7 +102,7 @@ def test_MQTTListener_bad_inputs_keys_publishingTopics(mqtt_config):
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['publishingTopics'] = 123
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert str(excinfo.value) == \
         'publishingTopics has to be a list of strings'
 
@@ -112,7 +112,7 @@ def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
     with pytest.raises(TypeError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['publishingTopics'] = [123]
-        MQTTListener(conf_dict)
+        MQTTEngine(conf_dict)
     assert 'publishing topic has to be a string :' in str(excinfo.value)
 
 

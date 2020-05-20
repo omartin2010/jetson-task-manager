@@ -1,5 +1,5 @@
 # Modules from current package
-from ..logger import RoboLogger
+from .logger import RoboLogger
 
 # Other imports
 import queue
@@ -7,7 +7,7 @@ import traceback
 import threading
 import uuid
 import asyncio
-log = RoboLogger.getLogger()
+log = RoboLogger()
 
 
 class TaskManager(object):
