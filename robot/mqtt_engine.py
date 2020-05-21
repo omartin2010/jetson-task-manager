@@ -18,6 +18,7 @@ class MQTTEngine(object, metaclass=Singleton):
     """
     # Defines constants for this class
     __LOG_GRACEFUL_SHUTDOWN = 'mqtt_engine_graceful_shutdown'
+    __LOG_INIT = 'mqtt_engine_init'
     __LOG_RUN = 'mqtt_engine_run'
     __LOG_THREAD_MAIN = 'mqtt_engine_thread_main'
     __LOG_ON_CONNECT = 'mqtt_engine_on_connect'
@@ -35,7 +36,7 @@ class MQTTEngine(object, metaclass=Singleton):
     def __init__(
             self,
             mqtt_configuration: dict,
-            event_loop: asyncio.BaseEventLoop) -> None:
+            event_loop: asyncio.BaseEventLoop = None) -> None:
         """
         Description :
             class initializer.
@@ -78,6 +79,9 @@ class MQTTEngine(object, metaclass=Singleton):
             if not isinstance(event_loop, asyncio.BaseEventLoop):
                 raise TypeError(f'Constructor requires event_loop to be of '
                                 f'asyncio.BaseEventLoop() class')
+            log.debug(self.__LOG_INIT,
+                      msg=f'Event loop ID MQTTEngine '
+                          f'{id(event_loop)}')
             self.mqtt_configuration = mqtt_configuration
             self.in_msg_q = asyncio.Queue()
             self.out_msg_q = asyncio.Queue()

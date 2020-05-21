@@ -14,6 +14,7 @@ async def engine(config_file, event_loop):
     with open(config_file, 'r') as f:
         taskmanConfiguration = json.load(f)
     mqtt_config = taskmanConfiguration['mqtt']
+    print(f'in test : {id(event_loop)}')
     return MQTTEngine(mqtt_config, event_loop)
 
 
@@ -24,12 +25,14 @@ def running_listener(listener):
     return listener
 
 
+@pytest.mark.test1
 def test_MQTTEngine(engine, mqtt_config):
     """ Validates that the mqtt_configuration param is of the right type """
     assert engine.mqtt_configuration == mqtt_config
     assert isinstance(engine.in_msg_q, asyncio.Queue) is True
 
 
+@pytest.mark.test1
 def test_MQTTEngine_bad_inputs_type(mqtt_config):
     """ Validates that with the wrong type, it can't initialize """
     with pytest.raises(TypeError) as excinfo:
