@@ -58,6 +58,8 @@ class MQTTEngine(object, metaclass=Singleton):
                 socket.inet_aton(str(mqtt_configuration['brokerIP']))
             except:
                 raise OSError(f'Poorly formatted IP address')
+            if not isinstance(mqtt_configuration['brokerPort'], int):
+                raise TypeError('brokerPort has to be a integer.')
             if mqtt_configuration['brokerProto'] != 'tcp':
                 raise ValueError('broker proto has to be tcp')
             if not isinstance(mqtt_configuration['clientID'], str):
@@ -82,16 +84,16 @@ class MQTTEngine(object, metaclass=Singleton):
             log.debug(self.__LOG_INIT,
                       msg=f'Event loop ID MQTTEngine '
                           f'{id(event_loop)}')
-            self.mqtt_configuration = mqtt_configuration
+            self.__mqtt_configuration = mqtt_configuration
             self.in_msg_q = asyncio.Queue()
             self.out_msg_q = asyncio.Queue()
             self.__event_loop = event_loop
             self.running_async_tasks = []
-            self._running = False
-            self.__mqtt_client_id = self.mqtt_configuration["clientID"],
-            self.__mqtt_transport = self.mqtt_configuration["brokerProto"]
-            self.__mqtt_broker_ip = self.mqtt_configuration["brokerIP"]
-            self.__mqtt_port = self.mqtt_configuration["brokerPort"]
+            self.is_running = False
+            self.__mqtt_client_id = self.__mqtt_configuration["clientID"]
+            self.__mqtt_transport = self.__mqtt_configuration["brokerProto"]
+            self.__mqtt_broker_ip = self.__mqtt_configuration["brokerIP"]
+            self.__mqtt_port = self.__mqtt_configuration["brokerPort"]
         except Exception:
             raise
 
@@ -117,9 +119,9 @@ class MQTTEngine(object, metaclass=Singleton):
                                  f'from non signal.')
             # Stop MQTT client:
             try:
-                self._mqtt_client.loop_stop()
-                self._mqtt_client.disconnect()
-                if self._mqtt_client.is_connected():
+                self.__mqtt_client.loop_stop()
+                self.__mqtt_client.disconnect()
+                if self.__mqtt_client.is_connected():
                     log.error(self.__LOG_GRACEFUL_SHUTDOWN,
                               msg=f'Unable to stop MQTT client.')
                 else:
@@ -142,26 +144,26 @@ class MQTTEngine(object, metaclass=Singleton):
         try:
             mqtt_default_qos = 2
             self.mqtt_topics = [(topic, mqtt_default_qos)
-                                for topic in self.mqtt_configuration
+                                for topic in self.__mqtt_configuration
                                 ['subscribedTopics']]
-            self._mqtt_client = mqtt.Client(
+            self.__mqtt_client = mqtt.Client(
                 client_id=self.__mqtt_client_id,
                 clean_session=True,
                 transport=self.__mqtt_transport)
-            self._mqtt_client.enable_logger(
+            self.__mqtt_client.enable_logger(
                 logger=RoboLogger.getSpecificLogger(
                     self.__LOG_THREAD_MAIN))
-            self._mqtt_client.on_subscribe = self.__cb_mqtt_on_subscribe
-            self._mqtt_client.on_connect = self.__cb_mqtt_on_connect
-            self._mqtt_client.on_disconnect = self.__cb_mqtt_on_disconnect
-            self._mqtt_client.on_message = self.__cb_mqtt_on_message
-            self._mqtt_client.connect(
+            self.__mqtt_client.on_subscribe = self.__cb_mqtt_on_subscribe
+            self.__mqtt_client.on_connect = self.__cb_mqtt_on_connect
+            self.__mqtt_client.on_disconnect = self.__cb_mqtt_on_disconnect
+            self.__mqtt_client.on_message = self.__cb_mqtt_on_message
+            self.__mqtt_client.connect(
                 host=self.__mqtt_broker_ip,
                 port=self.__mqtt_port)
             log.warning(self.__LOG_RUN,
                         msg='Launching MQTT Thread (loop start).')
-            self._mqtt_client.loop_start()
-            self._running = True
+            self.__mqtt_client.loop_start()
+            self.is_running = True
             # create task on the event loop for processing outbound messages
             self.running_async_tasks.append(
                 self.__event_loop.create_task(self._outbound_message_sender()))
@@ -171,7 +173,7 @@ class MQTTEngine(object, metaclass=Singleton):
                       f'Error : {traceback.print_exc()}')
         finally:
             log.warning(self.__LOG_THREAD_MAIN,
-                        msg=f'Exiting MQTT connection thread.')
+                        msg=f'Exiting run()')
 
     def subscribe_topic(self,
                         callback,
@@ -213,7 +215,7 @@ class MQTTEngine(object, metaclass=Singleton):
         if not isinstance(topic, str):
             raise TypeError(f'Topic has to be a string')
         try:
-            self._mqtt_client.unsubscribe(topic)
+            self.__mqtt_client.unsubscribe(topic)
         except:
             raise Exception(f'Exception {traceback.print_exc()}')
         return None
@@ -257,7 +259,7 @@ class MQTTEngine(object, metaclass=Singleton):
         log.warning(self.__LOG_ON_DISCONNECT,
                     f'Disconnected MQTT result code = {rc}. '
                     f'Should automatically re-connect to broker')
-        self._mqtt_client.loop_stop()
+        self.__mqtt_client.loop_stop()
 
     def __cb_mqtt_on_subscribe(self, client, userdata, mid, granted_qos):
         if mid == self.mqtt_connect_mid:
@@ -284,7 +286,7 @@ class MQTTEngine(object, metaclass=Singleton):
                     'msg_node_id': msg.msg_id
                 }
                 payload.update(msg.body)
-                self._mqtt_client.publish(
+                self.__mqtt_client.publish(
                     topic=msg.topic,
                     payload=payload,
                     qos=msg.qos)

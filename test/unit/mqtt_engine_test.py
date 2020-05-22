@@ -18,18 +18,18 @@ async def engine(config_file, event_loop):
     return MQTTEngine(mqtt_config, event_loop)
 
 
-@pytest.fixture(scope='module')
-def running_listener(listener):
-    listener.run()
+@pytest.fixture(scope='function')
+def running_engine(engine):
+    engine.run()
     time.sleep(1)
-    return listener
+    return engine
 
 
 @pytest.mark.test1
 def test_MQTTEngine(engine, mqtt_config):
     """ Validates that the mqtt_configuration param is of the right type """
-    assert engine.mqtt_configuration == mqtt_config
-    assert isinstance(engine.in_msg_q, asyncio.Queue) is True
+    assert engine._MQTTEngine__mqtt_configuration == mqtt_config
+    assert isinstance(engine.in_msg_q, asyncio.Queue)
 
 
 @pytest.mark.test1
@@ -120,21 +120,23 @@ def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
     assert 'publishing topic has to be a string :' in str(excinfo.value)
 
 
-def test_MQTTEngine_run(running_listener):
+@pytest.mark.asyncio
+def test_MQTTEngine_run(running_engine):
     """ validates if the mqtt listener fixture is running """
-    assert running_listener.running is True
+    assert running_engine.is_running
+    assert running_engine._MQTTEngine__mqtt_client.is_connected()
 
 
-def test_MQTTEngine_connected_topics(running_listener, subscribe_to_topics):
+def test_MQTTEngine_connected_topics(running_engine, subscribe_to_topics):
     """ Confirm if subscribed topics are actually subscribed """
-    assert set(running_listener.subscribed_mqtt_topics) == \
+    assert set(running_engine.subscribed_mqtt_topics) == \
         set(subscribe_to_topics)
 
 
-def test_MQTTEngine_publish_test(running_listener):
+def test_MQTTEngine_publish_test(running_engine):
     """ Confirm if we can publish a message to a test topic """
     payload = {'test': 'test'}
-    msg = running_listener.mqttClient.publish(
+    msg = running_engine._MQTTEngine__mqtt_client.publish(
         topic='test',
         payload=json.dumps(payload),
         qos=1)
@@ -142,7 +144,7 @@ def test_MQTTEngine_publish_test(running_listener):
 
 
 def test_MQTTEngine_on_message_and_dequeue(
-        running_listener,
+        running_engine,
         mqtt_config,
         subscribe_to_topics):
     """
@@ -159,7 +161,7 @@ def test_MQTTEngine_on_message_and_dequeue(
     for topic in subscribe_to_topics:
         client.publish(topic=topic, payload=payload, qos=1)
         time.sleep(0.5)
-    assert running_listener.mqtt_message_queue.qsize() == \
+    assert running_engine.in_msg_q.qsize() == \
         len(subscribe_to_topics)
     remaining_topics = deepcopy(subscribe_to_topics)
     i = 0
@@ -167,33 +169,33 @@ def test_MQTTEngine_on_message_and_dequeue(
     # messages pushed on the stack
     while i < len(subscribe_to_topics):
         msg_received_topic, msg_received_payload = \
-            running_listener.mqtt_message_queue.get_nowait()
+            running_engine.in_msg_q.get_nowait()
         assert msg_received_payload == payload
         assert msg_received_topic in remaining_topics
         remaining_topics.remove(msg_received_topic)
         print(f'tested topic {msg_received_topic}')
         i += 1
-    assert running_listener.mqtt_message_queue.empty()
+    assert running_engine.in_msg_q.empty()
 
 
-def test_MQTTEngine_graceful_shutdown_bad_input(running_listener):
+def test_MQTTEngine_graceful_shutdown_bad_input(running_engine):
     """ Shutdown tests - run at the end """
     with pytest.raises(TypeError) as excinfo:
-        running_listener.graceful_shutdown('bob')
+        running_engine.graceful_shutdown('bob')
     assert str(excinfo.value) == \
         'input parameter \'s\' has to be a signal'
 
 
-def test_MQTTEngine_graceful_shutdown_default_params(running_listener):
+def test_MQTTEngine_graceful_shutdown_default_params(running_engine):
     """ Shutdown tests - run at the end """
-    running_listener.graceful_shutdown()
+    running_engine.graceful_shutdown()
     time.sleep(1)
-    assert running_listener.mqttClient.is_connected() is False
+    assert not running_engine._MQTTEngine__mqtt_client.is_connected()
 
 
-def test_MQTTEngine_graceful_shutdown_good_input(running_listener):
+def test_MQTTEngine_graceful_shutdown_good_input(running_engine):
     """ Shutdown tests - run at the end """
-    running_listener.graceful_shutdown(signal.SIGINT)
-    assert running_listener.mqttClient.is_connected() is False
+    running_engine.graceful_shutdown(signal.SIGINT)
+    assert not running_engine._MQTTEngine__mqtt_client.is_connected()
 
 # ADD TEST FOR NON RESPONSIVE MQTT ENDPOINT --?
