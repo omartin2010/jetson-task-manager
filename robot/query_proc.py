@@ -47,7 +47,7 @@ class QueryProcessor(object):
             # Put message on the queue
             await self.out_msg_q.put(msg)
             self.__mqtt_engine.subscribe_topic(
-                callback=self.__cb_get_query_response(),
+                cb=self.__cb_get_query_response(),
                 topic=msg.topic,
                 qos=msg.qos)
             # Wait for incoming response

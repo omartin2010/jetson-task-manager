@@ -5,7 +5,7 @@ from .singleton import Singleton
 import signal
 import asyncio
 import paho.mqtt.client as mqtt
-import paho.mqtt.subscribe as subscribe
+from paho.mqtt.client import MQTT_ERR_SUCCESS, MQTT_ERR_NO_CONN
 import traceback
 import socket
 
@@ -20,10 +20,10 @@ class MQTTEngine(object, metaclass=Singleton):
     __LOG_GRACEFUL_SHUTDOWN = 'mqtt_engine_graceful_shutdown'
     __LOG_INIT = 'mqtt_engine_init'
     __LOG_RUN = 'mqtt_engine_run'
-    __LOG_THREAD_MAIN = 'mqtt_engine_thread_main'
+    __LOG_THREAD_MQTT = 'mqtt_logger'
     __LOG_ON_CONNECT = 'mqtt_engine_on_connect'
     __LOG_ON_MESSAGE = 'mqtt_engine_on_message'
-    __LOG_ON_DISCONNECT = 'mqtt_engine_on_distonnect'
+    __LOG_ON_DISCONNECT = 'mqtt_engine_on_disconnect'
     __LOG_ON_SUBSCRIBE = 'mqtt_engine_on_subscribe'
     __LOG_OUTBOUND_MSG_SENDER = 'mqtt_engine_outbound_msg_sender'
     __REQUIRED_KEYS = ['brokerIP',
@@ -32,6 +32,8 @@ class MQTTEngine(object, metaclass=Singleton):
                        'clientID',
                        'subscribedTopics',
                        'publishingTopics']
+    SUCCESS = 0
+    FAIL = -1
 
     def __init__(
             self,
@@ -152,12 +154,12 @@ class MQTTEngine(object, metaclass=Singleton):
                 transport=self.__mqtt_transport)
             self.__mqtt_client.enable_logger(
                 logger=RoboLogger.getSpecificLogger(
-                    self.__LOG_THREAD_MAIN))
+                    self.__LOG_THREAD_MQTT))
             self.__mqtt_client.on_subscribe = self.__cb_mqtt_on_subscribe
             self.__mqtt_client.on_connect = self.__cb_mqtt_on_connect
             self.__mqtt_client.on_disconnect = self.__cb_mqtt_on_disconnect
             self.__mqtt_client.on_message = self.__cb_mqtt_on_message
-            self.__mqtt_client.connect(
+            self.__mqtt_client.connect_async(
                 host=self.__mqtt_broker_ip,
                 port=self.__mqtt_port)
             log.warning(self.__LOG_RUN,
@@ -169,40 +171,37 @@ class MQTTEngine(object, metaclass=Singleton):
                 self.__event_loop.create_task(self._outbound_message_sender()))
 
         except Exception:
-            log.error(self.__LOG_THREAD_MAIN,
+            log.error(self.__LOG_RUN,
                       f'Error : {traceback.print_exc()}')
         finally:
-            log.warning(self.__LOG_THREAD_MAIN,
+            log.warning(self.__LOG_RUN,
                         msg=f'Exiting run()')
 
     def subscribe_topic(self,
-                        callback,
                         topic: str,
                         qos: int = 0) -> None:
         """
         Description :
             Quickly subscribes to a topic and registers a callback for
                 responses.
+        Args:
+            topic : str, topic to subscribe to...
+            qos : int, 0 1 or 2, mqtt QOS for this subscription
         """
         # Type and value checking
-        if not callable(callback):
-            raise TypeError(f'callback should be a callable function.')
         if not isinstance(topic, str):
             raise TypeError(f'Topic has to be a string')
         if qos not in [0, 1, 2]:
             raise ValueError(f'qos has to be 0, 1 or 2')
         try:
-            subscribe.callback(
-                callback=callback,
-                topics=[topic],
-                qos=qos,
-                hostname=self.__mqtt_broker_ip,
-                port=self.__mqtt_port,
-                client_id=self.__mqtt_client_id,
-                transport=self.__mqtt_transport)
+            result, mid = self.__mqtt_client.subscribe(
+                topic=topic, qos=qos)
         except:
             raise Exception(f'Exception {traceback.print_exc()}')
-        return None
+        if result == MQTT_ERR_SUCCESS:
+            return self.SUCCESS
+        elif result == MQTT_ERR_NO_CONN:
+            return self.FAIL
 
     def unsubscribe_topic(self,
                           topic: str) -> None:
@@ -262,14 +261,9 @@ class MQTTEngine(object, metaclass=Singleton):
         self.__mqtt_client.loop_stop()
 
     def __cb_mqtt_on_subscribe(self, client, userdata, mid, granted_qos):
-        if mid == self.mqtt_connect_mid:
-            log.debug(self.__LOG_ON_SUBSCRIBE,
-                      msg=f'Subscribed to topic(s). Granted '
-                          f'QOS = {granted_qos}')
-        else:
-            log.error(self.__LOG_ON_SUBSCRIBE,
-                      msg=f'Strange... MID does not match '
-                          f'self.mqtt_connect_mid')
+        log.debug(self.__LOG_ON_SUBSCRIBE,
+                  msg=f'Subscribed to topic(s). Granted '
+                      f'QOS = {granted_qos}')
 
     async def _outbound_message_sender(self):
         """

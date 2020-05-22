@@ -19,20 +19,19 @@ async def engine(config_file, event_loop):
 
 
 @pytest.fixture(scope='function')
-def running_engine(engine):
+@pytest.mark.asyncio
+async def running_engine(engine):
     engine.run()
-    time.sleep(1)
+    await asyncio.sleep(1)  # time.sleep(1)
     return engine
 
 
-@pytest.mark.test1
 def test_MQTTEngine(engine, mqtt_config):
     """ Validates that the mqtt_configuration param is of the right type """
     assert engine._MQTTEngine__mqtt_configuration == mqtt_config
     assert isinstance(engine.in_msg_q, asyncio.Queue)
 
 
-@pytest.mark.test1
 def test_MQTTEngine_bad_inputs_type(mqtt_config):
     """ Validates that with the wrong type, it can't initialize """
     with pytest.raises(TypeError) as excinfo:
@@ -137,7 +136,7 @@ def test_MQTTEngine_publish_test(running_engine):
     """ Confirm if we can publish a message to a test topic """
     payload = {'test': 'test'}
     msg = running_engine._MQTTEngine__mqtt_client.publish(
-        topic='test',
+        topic='test123',
         payload=json.dumps(payload),
         qos=1)
     assert msg.rc == 0
@@ -161,6 +160,7 @@ def test_MQTTEngine_on_message_and_dequeue(
     for topic in subscribe_to_topics:
         client.publish(topic=topic, payload=payload, qos=1)
         time.sleep(0.5)
+    time.sleep(2)
     assert running_engine.in_msg_q.qsize() == \
         len(subscribe_to_topics)
     remaining_topics = deepcopy(subscribe_to_topics)
@@ -188,14 +188,23 @@ def test_MQTTEngine_graceful_shutdown_bad_input(running_engine):
 
 def test_MQTTEngine_graceful_shutdown_default_params(running_engine):
     """ Shutdown tests - run at the end """
+    time.sleep(10)
     running_engine.graceful_shutdown()
-    time.sleep(1)
     assert not running_engine._MQTTEngine__mqtt_client.is_connected()
 
 
 def test_MQTTEngine_graceful_shutdown_good_input(running_engine):
     """ Shutdown tests - run at the end """
+    time.sleep(10)
     running_engine.graceful_shutdown(signal.SIGINT)
     assert not running_engine._MQTTEngine__mqtt_client.is_connected()
 
+
+def test_MQTTEngine_subscribe_topic(running_engine):
+    val = running_engine.subscribe_topic('test/topic', qos=1)
+    assert val == MQTTEngine.SUCCESS
+
+
 # ADD TEST FOR NON RESPONSIVE MQTT ENDPOINT --?
+# need to add tests for outbound_message_processorr
+# need to add tests for subsribe and unsubscribe topics
