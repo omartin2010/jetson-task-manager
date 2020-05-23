@@ -6,10 +6,10 @@ import logging
 
 class RoboLogger(object, metaclass=Singleton):
     """
-    Description : 
+    Description :
         Implementation of a logger object for debugging independently
             all parts of the robot
-    Singleton pattern : 
+    Singleton pattern :
     https://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
     """
 

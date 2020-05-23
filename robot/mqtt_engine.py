@@ -229,7 +229,7 @@ class MQTTEngine(object, metaclass=Singleton):
                         msg=f'Successfully subscribed to '
                             f'topics in input config file')
             log.debug(self.__LOG_ON_CONNECT,
-                      msg=f'Topics subcribed = {self.mqtt_topics}')
+                        msg=f'Topics subcribed = {self.mqtt_topics}')
             self.subscribed_mqtt_topics = \
                 [topic for topic, qos in self.mqtt_topics]
         else:
@@ -241,14 +241,14 @@ class MQTTEngine(object, metaclass=Singleton):
         """ callback function used for the mqtt client (called when
         a new message is publisehd to one of the queues we subscribe to)
         """
-        log.info(self.__LOG_ON_MESSAGE,
-                 msg=f'Received MID {message.mid} : '
-                     f'"{str(message.payload)}" '
-                     f'on topic {message.topic} with QoS {message.qos}')
         try:
-            self.in_msg_q.put_nowait(
-                (message.topic,
-                 message.payload.decode('utf-8')))
+            log.info(
+                self.__LOG_ON_MESSAGE,
+                msg=f'Received MID {message.mid} : '
+                    f'"{str(message.payload)}" '
+                    f'on topic {message.topic} with QoS {message.qos}')
+            self.in_msg_q.put_nowait(item=(message.topic,
+                                     message.payload.decode('utf-8')))
         except asyncio.QueueFull:
             raise asyncio.QueueFull('Unable to write to mqtt_message_queue')
 
@@ -284,6 +284,12 @@ class MQTTEngine(object, metaclass=Singleton):
                     topic=msg.topic,
                     payload=payload,
                     qos=msg.qos)
+            except asyncio.futures.CancelledError:
+                log.warning(
+                    self.__LOG_OUTBOUND_MSG_SENDER,
+                    msg=f'Cancelled outbound message sender task.')
+                break
+
             except:
                 log.error(self.__LOG_OUTBOUND_MSG_SENDER,
                           msg=f'Error in outbound message sender task. '

@@ -1,12 +1,18 @@
+from robot.logger import RoboLogger
+
 import pytest
 import time
+import logging
 import json
 import signal
 import asyncio
 from robot import MQTTEngine
 import paho.mqtt.client as mqtt
+from paho.mqtt.client import MQTTMessageInfo
+from paho.mqtt.client import MQTT_ERR_SUCCESS
 from copy import deepcopy
 
+log = RoboLogger(defaultlevel=logging.DEBUG)
 
 @pytest.fixture(scope='function')
 @pytest.mark.asyncio
@@ -22,7 +28,7 @@ async def engine(config_file, event_loop):
 @pytest.mark.asyncio
 async def running_engine(engine):
     engine.run()
-    await asyncio.sleep(1)  # time.sleep(1)
+    time.sleep(1)   # await asyncio.sleep(1)  # time.sleep(1)
     return engine
 
 
@@ -119,7 +125,7 @@ def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
     assert 'publishing topic has to be a string :' in str(excinfo.value)
 
 
-@pytest.mark.asyncio
+# @pytest.mark.asyncio
 def test_MQTTEngine_run(running_engine):
     """ validates if the mqtt listener fixture is running """
     assert running_engine.is_running
@@ -149,6 +155,7 @@ def test_MQTTEngine_on_message_and_dequeue(
     """
     Tests queuing messages to every queue defined in the config.json
     """
+    time.sleep(2)
     client = mqtt.Client(
         client_id='pytest',
         clean_session=True,
@@ -157,10 +164,15 @@ def test_MQTTEngine_on_message_and_dequeue(
         host=mqtt_config['brokerIP'],
         port=mqtt_config['brokerPort'])
     payload = json.dumps({'test_key': 'test_value'})
+    # time.sleep(1)
     for topic in subscribe_to_topics:
-        client.publish(topic=topic, payload=payload, qos=1)
-        time.sleep(0.5)
-    time.sleep(2)
+        res = MQTTMessageInfo(client.publish(topic=topic,
+                                             payload=payload,
+                                             qos=1))
+        print(f'pytest published to mqtt topic {topic}')
+        # res.wait_for_publish()
+        assert res.rc == MQTT_ERR_SUCCESS
+    time.sleep(1)
     assert running_engine.in_msg_q.qsize() == \
         len(subscribe_to_topics)
     remaining_topics = deepcopy(subscribe_to_topics)
@@ -188,14 +200,14 @@ def test_MQTTEngine_graceful_shutdown_bad_input(running_engine):
 
 def test_MQTTEngine_graceful_shutdown_default_params(running_engine):
     """ Shutdown tests - run at the end """
-    time.sleep(10)
+    time.sleep(2)
     running_engine.graceful_shutdown()
     assert not running_engine._MQTTEngine__mqtt_client.is_connected()
 
 
 def test_MQTTEngine_graceful_shutdown_good_input(running_engine):
     """ Shutdown tests - run at the end """
-    time.sleep(10)
+    time.sleep(2)
     running_engine.graceful_shutdown(signal.SIGINT)
     assert not running_engine._MQTTEngine__mqtt_client.is_connected()
 

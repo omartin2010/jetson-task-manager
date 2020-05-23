@@ -4,7 +4,6 @@
     "python.testing.nosetestsEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.testing.cwd": "",
-    "python.autoComplete.addBrackets": true,
     "python.testing.pytestArgs": [
         "test",
         "-v"
