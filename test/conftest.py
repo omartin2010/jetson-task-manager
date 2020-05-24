@@ -23,7 +23,7 @@ def config_file(request):
     return config_file_value
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def mqtt_config(config_file):
     with open(config_file, 'r') as f:
         taskmanConfiguration = json.load(f)
@@ -31,11 +31,11 @@ def mqtt_config(config_file):
     return mqtt_config
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def subscribe_to_topics(mqtt_config):
     return mqtt_config['subscribedTopics']
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def taskman(config_file):
     return TaskManager(config_file, asyncio.get_event_loop())

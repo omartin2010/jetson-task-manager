@@ -8,5 +8,6 @@
         "test",
         "-v"
     ],
-    "python.analysis.memory.keepLibraryLocalVariables": true
+    "python.analysis.memory.keepLibraryLocalVariables": true,
+    "python.autoComplete.addBrackets": true
 }

@@ -7,7 +7,7 @@ import traceback
 log = RoboLogger()
 
 
-class QueryProcessor(object):
+class QueryProcessor():
     """
     Description :
         Query message processor, used by every task to query the system

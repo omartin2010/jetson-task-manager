@@ -7,7 +7,7 @@ import traceback
 log = RoboLogger()
 
 
-class MQTTProcessor(object):
+class MQTTProcessor():
     """
     Description :
         Class used to process MQTT messages for the robot

@@ -4,7 +4,7 @@ from .singleton import Singleton
 import logging
 
 
-class RoboLogger(object, metaclass=Singleton):
+class RoboLogger(metaclass=Singleton):
     """
     Description :
         Implementation of a logger object for debugging independently

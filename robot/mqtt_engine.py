@@ -12,7 +12,7 @@ import socket
 log = RoboLogger()
 
 
-class MQTTEngine(object, metaclass=Singleton):
+class MQTTEngine(metaclass=Singleton):
     """
     Description : Class for the MQTT Engine for the robot
     """
@@ -90,7 +90,7 @@ class MQTTEngine(object, metaclass=Singleton):
             self.in_msg_q = asyncio.Queue()
             self.out_msg_q = asyncio.Queue()
             self.__event_loop = event_loop
-            self.running_async_tasks = []
+            self.__running_async_tasks = []
             self.is_running = False
             self.__mqtt_client_id = self.__mqtt_configuration["clientID"]
             self.__mqtt_transport = self.__mqtt_configuration["brokerProto"]
@@ -99,7 +99,7 @@ class MQTTEngine(object, metaclass=Singleton):
         except Exception:
             raise
 
-    def graceful_shutdown(
+    async def graceful_shutdown(
             self,
             s=None) -> None:
         """
@@ -108,33 +108,54 @@ class MQTTEngine(object, metaclass=Singleton):
         Args:
             None
         """
+        if s is not None:
+            if s not in signal.Signals:
+                raise TypeError('input parameter \'s\' has to be a signal')
+            log.critical(self.__LOG_GRACEFUL_SHUTDOWN,
+                         msg=f'Initiating graceful shutdown now '
+                             f'from received signal {s.name}.')
+        else:
+            log.critical(self.__LOG_GRACEFUL_SHUTDOWN,
+                         msg=f'Initiating graceful shutdown now '
+                             f'from non signal.')
+        # Stop MQTT client:
         try:
-            if s is not None:
-                if s not in signal.Signals:
-                    raise TypeError('input parameter \'s\' has to be a signal')
-                log.critical(self.__LOG_GRACEFUL_SHUTDOWN,
-                             msg=f'Initiating graceful shutdown now '
-                                 f'from received signal {s.name}.')
-            else:
-                log.critical(self.__LOG_GRACEFUL_SHUTDOWN,
-                             msg=f'Initiating graceful shutdown now '
-                                 f'from non signal.')
-            # Stop MQTT client:
-            try:
-                self.__mqtt_client.loop_stop()
-                self.__mqtt_client.disconnect()
-                if self.__mqtt_client.is_connected():
-                    log.error(self.__LOG_GRACEFUL_SHUTDOWN,
-                              msg=f'Unable to stop MQTT client.')
-                else:
-                    log.info(self.__LOG_GRACEFUL_SHUTDOWN,
-                             msg=f'Stopped MQTT client.')
-            except:
+            self.__mqtt_client.loop_stop()
+            self.__mqtt_client.disconnect()
+            if self.__mqtt_client.is_connected():
                 log.error(self.__LOG_GRACEFUL_SHUTDOWN,
-                          msg=f'Exception in shutting down MQTT')
-                raise
+                          msg=f'Unable to stop MQTT client.')
+            else:
+                log.info(self.__LOG_GRACEFUL_SHUTDOWN,
+                         msg=f'Stopped MQTT client.')
         except:
+            log.error(self.__LOG_GRACEFUL_SHUTDOWN,
+                      msg=f'Exception in shutting down MQTT')
             raise
+        try:
+            tasks = [t for t in asyncio.Task.all_tasks(
+                     loop=self.__event_loop)
+                     if t is not asyncio.Task.current_task()]
+            log.info(self.__LOG_GRACEFUL_SHUTDOWN,
+                     msg=f'Cancelling task {len(tasks)} tasks...')
+            [task.cancel() for task in tasks]
+            log.info(self.__LOG_GRACEFUL_SHUTDOWN,
+                     msg=f'Gaterhing out put of cancellation '
+                         f'of {len(tasks)} tasks...')
+            out_list = await asyncio.gather(
+                *tasks,
+                loop=self.__event_loop,
+                return_exceptions=True)
+            for idx, out in enumerate(out_list):
+                if isinstance(out, Exception):
+                    log.error(self.__LOG_GRACEFUL_SHUTDOWN,
+                              msg=f'Exception in stopping task {idx}')
+            log.warning(self.__LOG_GRACEFUL_SHUTDOWN,
+                        msg=f'Done cancelling tasks.')
+        except Exception:
+            raise Exception(f'Problem in graceful_shutdown in cancelling '
+                            f'asyncio tasks. '
+                            f'Traceback = {traceback.print_exc()}')
 
     def run(self) -> None:
         """
@@ -167,7 +188,7 @@ class MQTTEngine(object, metaclass=Singleton):
             self.__mqtt_client.loop_start()
             self.is_running = True
             # create task on the event loop for processing outbound messages
-            self.running_async_tasks.append(
+            self.__running_async_tasks.append(
                 self.__event_loop.create_task(self._outbound_message_sender()))
 
         except Exception:
@@ -229,7 +250,7 @@ class MQTTEngine(object, metaclass=Singleton):
                         msg=f'Successfully subscribed to '
                             f'topics in input config file')
             log.debug(self.__LOG_ON_CONNECT,
-                        msg=f'Topics subcribed = {self.mqtt_topics}')
+                      msg=f'Topics subcribed = {self.mqtt_topics}')
             self.subscribed_mqtt_topics = \
                 [topic for topic, qos in self.mqtt_topics]
         else:

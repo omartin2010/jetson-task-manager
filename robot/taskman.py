@@ -10,7 +10,7 @@ import asyncio
 log = RoboLogger()
 
 
-class TaskManager(object):
+class TaskManager():
     """ Main class for the task manager running on the jetson """
 
     # Defines constants for this class

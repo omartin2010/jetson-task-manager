@@ -1,7 +1,7 @@
 import uuid
 
 
-class Message(object):
+class Message():
     """
     Description:
         Message class used to exchange information between nodes

@@ -1,4 +1,6 @@
 from robot.logger import RoboLogger
+from robot import MQTTEngine
+from robot.singleton import Singleton
 
 import pytest
 import time
@@ -6,48 +8,87 @@ import logging
 import json
 import signal
 import asyncio
-from robot import MQTTEngine
 import paho.mqtt.client as mqtt
-from paho.mqtt.client import MQTTMessageInfo
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from copy import deepcopy
 
 log = RoboLogger(defaultlevel=logging.DEBUG)
 
-@pytest.fixture(scope='function')
-@pytest.mark.asyncio
-async def engine(config_file, event_loop):
+
+@pytest.fixture(scope='session')
+def event_loop():
+    loop = asyncio.get_event_loop()
+    log.warning('fixture_event_loop',
+                msg=f'event_loop fixture event_loop_id : {id(event_loop)}')
+    yield loop
+    log.warning('fixture_event_loop',
+                msg=f'closing loop!')
+    loop.close()
+
+
+@pytest.fixture(scope='session')
+def engine(config_file, event_loop):
     with open(config_file, 'r') as f:
         taskmanConfiguration = json.load(f)
     mqtt_config = taskmanConfiguration['mqtt']
-    print(f'in test : {id(event_loop)}')
-    return MQTTEngine(mqtt_config, event_loop)
+    log.warning('fixture_engine', f'event_loop id : {id(event_loop)}')
+    ret = MQTTEngine(mqtt_config, event_loop)
+    log.info('fixture_engine', f'MQTTEngine id : {id(ret)}')
+    return ret
 
 
-@pytest.fixture(scope='function')
-@pytest.mark.asyncio
-async def running_engine(engine):
+@pytest.fixture(scope='session')
+def running_engine(engine):
+    log.info('fixture_running_engine',
+             f'running_engine fixture MQTTEngine id : {id(engine)}')
     engine.run()
-    time.sleep(1)   # await asyncio.sleep(1)  # time.sleep(1)
+    time.sleep(1)
+    log.warning('fixture_running_engine',
+                f'event_loop id : {id(engine._MQTTEngine__event_loop)}')
     return engine
 
 
+@pytest.fixture(scope='function')
+def running_engine_test_shutdown(config_file):
+    loop = asyncio.get_event_loop()
+    log.warning('fixture_running_engine_test_shutdown',
+                msg=f'event_loop id : {id(loop)}')
+    with open(config_file, 'r') as f:
+        taskmanConfiguration = json.load(f)
+    mqtt_config = taskmanConfiguration['mqtt']
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
+    engine = MQTTEngine(mqtt_config, loop)
+    engine.run()
+    time.sleep(1)
+    return engine
+
+
+@pytest.mark.test1
 def test_MQTTEngine(engine, mqtt_config):
     """ Validates that the mqtt_configuration param is of the right type """
     assert engine._MQTTEngine__mqtt_configuration == mqtt_config
+    log.warning('test_MQTTEngine', f'engine_id = {id(engine)}')
     assert isinstance(engine.in_msg_q, asyncio.Queue)
 
 
-def test_MQTTEngine_bad_inputs_type(mqtt_config):
+@pytest.mark.test1
+def test_MQTTEngine_bad_inputs_type():
     """ Validates that with the wrong type, it can't initialize """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
+    # log.warning('test_MQTTEngine_bad_inputs_type', f'engine_id = {id(eng)}')
     with pytest.raises(TypeError) as excinfo:
         MQTTEngine(mqtt_configuration='bob')
     assert str(excinfo.value) == \
         'mqtt_configuration has to be a dictionnary'
 
 
-def test_MQTTEngine_bad_inputs_keys(mqtt_config):
+@pytest.mark.test1
+def test_MQTTEngine_bad_inputs_keys():
     """ Validate if missing keys in mqtt_config dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(KeyError) as excinfo:
         conf_dict = {
             "brokerIP": 5,
@@ -59,6 +100,8 @@ def test_MQTTEngine_bad_inputs_keys(mqtt_config):
 
 def test_MQTTEngine_bad_inputs_keys_brokerIP(mqtt_config):
     """ Validates format for some keys of the dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(OSError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['brokerIP'] = 'abc'
@@ -69,6 +112,8 @@ def test_MQTTEngine_bad_inputs_keys_brokerIP(mqtt_config):
 
 def test_MQTTEngine_bad_inputs_keys_brokerProto(mqtt_config):
     """ Validates format for some keys of the dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['brokerProto'] = 'abc'
@@ -79,6 +124,8 @@ def test_MQTTEngine_bad_inputs_keys_brokerProto(mqtt_config):
 
 def test_MQTTEngine_bad_inputs_keys_clientID(mqtt_config):
     """ Validates format for some keys of the dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['clientID'] = 123
@@ -89,6 +136,8 @@ def test_MQTTEngine_bad_inputs_keys_clientID(mqtt_config):
 
 def test_MQTTEngine_bad_inputs_keys_subscribedTopics(mqtt_config):
     """ Validates format for some keys of the dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['subscribedTopics'] = 123
@@ -99,6 +148,8 @@ def test_MQTTEngine_bad_inputs_keys_subscribedTopics(mqtt_config):
 
 def test_MQTT_Listener_bad_inputs_values_subscribedTopics(mqtt_config):
     """ Validates format for some values of the dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(TypeError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['subscribedTopics'] = [123]
@@ -108,6 +159,8 @@ def test_MQTT_Listener_bad_inputs_values_subscribedTopics(mqtt_config):
 
 def test_MQTTEngine_bad_inputs_keys_publishingTopics(mqtt_config):
     """ Validates format for some keys of the dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(ValueError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['publishingTopics'] = 123
@@ -118,6 +171,8 @@ def test_MQTTEngine_bad_inputs_keys_publishingTopics(mqtt_config):
 
 def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
     """ Validates format for some values of the dict """
+    if MQTTEngine in Singleton._instances:
+        del Singleton._instances[MQTTEngine]
     with pytest.raises(TypeError) as excinfo:
         conf_dict = deepcopy(mqtt_config)
         conf_dict['publishingTopics'] = [123]
@@ -155,6 +210,8 @@ def test_MQTTEngine_on_message_and_dequeue(
     """
     Tests queuing messages to every queue defined in the config.json
     """
+    # Give time for the MQTT client (running_engine) to be up and has
+    # subscribed to required topics.
     time.sleep(2)
     client = mqtt.Client(
         client_id='pytest',
@@ -166,11 +223,8 @@ def test_MQTTEngine_on_message_and_dequeue(
     payload = json.dumps({'test_key': 'test_value'})
     # time.sleep(1)
     for topic in subscribe_to_topics:
-        res = MQTTMessageInfo(client.publish(topic=topic,
-                                             payload=payload,
-                                             qos=1))
+        res = client.publish(topic=topic, payload=payload, qos=1)
         print(f'pytest published to mqtt topic {topic}')
-        # res.wait_for_publish()
         assert res.rc == MQTT_ERR_SUCCESS
     time.sleep(1)
     assert running_engine.in_msg_q.qsize() == \
@@ -190,31 +244,43 @@ def test_MQTTEngine_on_message_and_dequeue(
     assert running_engine.in_msg_q.empty()
 
 
-def test_MQTTEngine_graceful_shutdown_bad_input(running_engine):
+def test_MQTTEngine_subscribe_topic(running_engine):
+    val = running_engine.subscribe_topic('test/topic', qos=1)
+    assert val == MQTTEngine.SUCCESS
+
+
+@pytest.mark.asyncio
+async def test_MQTTEngine_graceful_shutdown_bad_input(running_engine):
     """ Shutdown tests - run at the end """
     with pytest.raises(TypeError) as excinfo:
-        running_engine.graceful_shutdown('bob')
+        await running_engine.graceful_shutdown('bob')
     assert str(excinfo.value) == \
         'input parameter \'s\' has to be a signal'
 
 
-def test_MQTTEngine_graceful_shutdown_default_params(running_engine):
+def test_MQTTEngine_graceful_shutdown_default_params(
+        running_engine_test_shutdown,
+        event_loop):
     """ Shutdown tests - run at the end """
-    time.sleep(2)
-    running_engine.graceful_shutdown()
-    assert not running_engine._MQTTEngine__mqtt_client.is_connected()
+    time.sleep(1)
+    event_loop.run_until_complete(
+        running_engine_test_shutdown.graceful_shutdown())
+    assert not (running_engine_test_shutdown
+                ._MQTTEngine__mqtt_client.is_connected())
 
 
-def test_MQTTEngine_graceful_shutdown_good_input(running_engine):
+# @pytest.mark.skip(reason='testing other methods')
+def test_MQTTEngine_graceful_shutdown_good_input(
+        running_engine_test_shutdown,
+        event_loop):
     """ Shutdown tests - run at the end """
-    time.sleep(2)
-    running_engine.graceful_shutdown(signal.SIGINT)
-    assert not running_engine._MQTTEngine__mqtt_client.is_connected()
+    time.sleep(1)
+    event_loop.run_until_complete(
+        running_engine_test_shutdown.graceful_shutdown(signal.SIGINT))
+    assert not (running_engine_test_shutdown
+                ._MQTTEngine__mqtt_client.is_connected())
 
 
-def test_MQTTEngine_subscribe_topic(running_engine):
-    val = running_engine.subscribe_topic('test/topic', qos=1)
-    assert val == MQTTEngine.SUCCESS
 
 
 # ADD TEST FOR NON RESPONSIVE MQTT ENDPOINT --?
