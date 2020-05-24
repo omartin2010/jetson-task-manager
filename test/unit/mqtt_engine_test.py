@@ -249,11 +249,30 @@ def test_MQTTEngine_subscribe_topic(running_engine):
     assert val == MQTTEngine.SUCCESS
 
 
+def test_MQTTEngine_unsubscribe_topic(running_engine):
+    val = running_engine.unsubscribe_topic('test/topic')
+    assert val == MQTTEngine.SUCCESS
+
+
 @pytest.mark.asyncio
-async def test_MQTTEngine_graceful_shutdown_bad_input(running_engine):
+async def test_MQTTEngine_outbound_message_sender(
+        running_engine,
+        message):
+    # await asyncio.sleep(1)
+    await running_engine.out_msg_q.put(message)
+    await asyncio.sleep(1)
+    assert running_engine.out_msg_q.qsize() == 0
+    assert running_engine._MQTTEngine__last_outbound_msg_info_rc == \
+        MQTT_ERR_SUCCESS
+
+
+def test_MQTTEngine_graceful_shutdown_bad_input(
+        running_engine_test_shutdown,
+        event_loop):
     """ Shutdown tests - run at the end """
     with pytest.raises(TypeError) as excinfo:
-        await running_engine.graceful_shutdown('bob')
+        event_loop.run_until_complete(
+            running_engine_test_shutdown.graceful_shutdown('bob'))
     assert str(excinfo.value) == \
         'input parameter \'s\' has to be a signal'
 
@@ -269,7 +288,6 @@ def test_MQTTEngine_graceful_shutdown_default_params(
                 ._MQTTEngine__mqtt_client.is_connected())
 
 
-# @pytest.mark.skip(reason='testing other methods')
 def test_MQTTEngine_graceful_shutdown_good_input(
         running_engine_test_shutdown,
         event_loop):
@@ -280,9 +298,4 @@ def test_MQTTEngine_graceful_shutdown_good_input(
     assert not (running_engine_test_shutdown
                 ._MQTTEngine__mqtt_client.is_connected())
 
-
-
-
 # ADD TEST FOR NON RESPONSIVE MQTT ENDPOINT --?
-# need to add tests for outbound_message_processorr
-# need to add tests for subsribe and unsubscribe topics

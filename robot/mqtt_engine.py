@@ -5,6 +5,7 @@ from .singleton import Singleton
 import signal
 import asyncio
 import paho.mqtt.client as mqtt
+import json
 from paho.mqtt.client import MQTT_ERR_SUCCESS, MQTT_ERR_NO_CONN
 import traceback
 import socket
@@ -235,10 +236,13 @@ class MQTTEngine(metaclass=Singleton):
         if not isinstance(topic, str):
             raise TypeError(f'Topic has to be a string')
         try:
-            self.__mqtt_client.unsubscribe(topic)
+            result, mid = self.__mqtt_client.unsubscribe(topic)
+            if result == MQTT_ERR_SUCCESS:
+                return self.SUCCESS
+            elif result == MQTT_ERR_NO_CONN:
+                return self.FAIL
         except:
             raise Exception(f'Exception {traceback.print_exc()}')
-        return None
 
     def __cb_mqtt_on_connect(self, client, userdata, flags, rc):
         log.info(self.__LOG_ON_CONNECT,
@@ -293,24 +297,32 @@ class MQTTEngine(metaclass=Singleton):
         """
         while True:
             try:
-                msg = Message(await self.out_msg_q.get())
+                msg = await self.out_msg_q.get()
+                if not isinstance(msg, Message):
+                    raise TypeError(f'out_msg_q should contain '
+                                    f'Message class objects')
                 # Construct payload for mqtt message
                 payload = {
-                    'src_node_id': msg.src_node_id,
-                    'dst_node_id': msg.dst_node_id,
-                    'msg_node_id': msg.msg_id
+                    'src_node_id': str(msg.src_node_id),
+                    'dst_node_id': str(msg.dst_node_id),
+                    'msg_node_id': str(msg.msg_id)
                 }
                 payload.update(msg.body)
-                self.__mqtt_client.publish(
+                info = self.__mqtt_client.publish(
                     topic=msg.topic,
-                    payload=payload,
+                    payload=json.dumps(payload),
                     qos=msg.qos)
+                self.__last_outbound_msg_info_rc = info.rc
+                log.warning(
+                    self.__LOG_OUTBOUND_MSG_SENDER,
+                    msg=f'MQTT message sent...')
             except asyncio.futures.CancelledError:
                 log.warning(
                     self.__LOG_OUTBOUND_MSG_SENDER,
                     msg=f'Cancelled outbound message sender task.')
                 break
-
+            except TypeError:
+                raise
             except:
                 log.error(self.__LOG_OUTBOUND_MSG_SENDER,
                           msg=f'Error in outbound message sender task. '

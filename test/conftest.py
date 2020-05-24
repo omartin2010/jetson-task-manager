@@ -1,6 +1,9 @@
+from robot import TaskManager
+from robot import Message
+
 import pytest
 import json
-from robot import TaskManager
+from uuid import uuid4
 import asyncio
 import os
 
@@ -39,3 +42,14 @@ def subscribe_to_topics(mqtt_config):
 @pytest.fixture(scope='session')
 def taskman(config_file):
     return TaskManager(config_file, asyncio.get_event_loop())
+
+
+@pytest.fixture(scope='session')
+def message():
+    src_id = uuid4()
+    dst_id = uuid4()
+    return Message(src_node_id=src_id,
+                   dst_node_id=dst_id,
+                   body={'testkey': 'testvalue'},
+                   topic='testtopic',
+                   qos=1)

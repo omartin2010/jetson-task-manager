@@ -6,7 +6,8 @@
     "python.testing.cwd": "",
     "python.testing.pytestArgs": [
         "test",
-        "-v"
+        "-v",
+        "-rx"
     ],
     "python.analysis.memory.keepLibraryLocalVariables": true,
     "python.autoComplete.addBrackets": true
