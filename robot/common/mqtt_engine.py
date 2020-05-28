@@ -5,7 +5,6 @@ from .singleton import Singleton
 import signal
 import asyncio
 import paho.mqtt.client as mqtt
-# import json
 from paho.mqtt.client import MQTT_ERR_SUCCESS, MQTT_ERR_NO_CONN
 import traceback
 import socket

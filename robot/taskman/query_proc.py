@@ -19,7 +19,6 @@ class QueryProcessor():
     """
     __LOG_SEND_QUERY = 'query_processor_send_query'
     __LOG_INIT = 'query_processor_init'
-    __LOG__CB_GET_QUERY_RESPONSE = 'query_processor_cb_get_query_response'
 
     __slots__ = ['__mqtt_engine',
                  'out_msg_q',
@@ -35,7 +34,7 @@ class QueryProcessor():
             self.out_msg_q = self.__mqtt_engine.out_msg_q
             self.in_msg_q = asyncio.Queue()
             self.task_response_deque = task_response_deque
-            self.__id = uuid4()
+            self.node_id = uuid4()
             # Register the query processor
             self.__inbound_msg_proc = InboundMessageProcessor()
             self.__inbound_msg_proc.register_query_processor(self)
@@ -69,27 +68,3 @@ class QueryProcessor():
             raise Exception(f'Error on query : {traceback.print_exc()}')
         finally:
             self.__mqtt_engine.unsubscribe_topic(msg.topic)
-
-    def __cb_get_query_response(
-            self,
-            client,
-            userdata,
-            message):
-        """
-        Description:
-            callback used to get query response back
-        Args:
-            client :
-            userdata :
-            message :
-        """
-        try:
-            # Add response message to queue!
-            self.in_msg_q.put(message)
-
-        except asyncio.QueueFull:
-            log.error(self.__LOG__CB_GET_QUERY_RESPONSE,
-                      msg=f'Outbound queue is full.')
-        except Exception:
-            log.error(self.__LOG__CB_GET_QUERY_RESPONSE,
-                      msg=f'Error in callback to queue ')

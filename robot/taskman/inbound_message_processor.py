@@ -104,7 +104,7 @@ class InboundMessageProcessor(metaclass=Singleton):
         # Type checking
         if not isinstance(query_proc, QueryProcessor):
             raise TypeError('query_proc has to be of type QueryProcessor')
-        self.recipient_map[query_proc] = query_proc.in_msg_q
+        self.recipient_map[query_proc.node_id] = query_proc.in_msg_q
 
     def graceful_shutdown(self) -> None:
         """
