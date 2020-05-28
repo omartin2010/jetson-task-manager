@@ -1,8 +1,9 @@
+from ..common import RoboLogger
+from ..common import Message
+from ..common.singleton import Singleton
+from ..common import MQTTEngine
 from .taskman import TaskManager
-from .logger import RoboLogger
-from .message import Message
-from .singleton import Singleton
-from .mqtt_engine import MQTTEngine
+from .query_proc import QueryProcessor
 from .task import Task
 
 import asyncio
@@ -68,8 +69,7 @@ class InboundMessageProcessor(metaclass=Singleton):
             self.__mqtt_engine.run()
             self.__running = True
             while self.__running:
-                # Get message that was queued by Add message to queue for
-                # further processing
+                # Get q'd message from engine
                 msg = Message(await self.__mqtt_engine.in_msg_q.get())
                 # Get the proper Q for the target
                 q = deque(self.recipient_map[msg.dst_node_id])
@@ -84,8 +84,27 @@ class InboundMessageProcessor(metaclass=Singleton):
         Description:
             Used to register a new task to the recipient map, so that inbound
                 messages are sent to the right queue for processing
+
         """
+        if not isinstance(task, Task):
+            raise TypeError('task has to be of type Task')
         self.recipient_map[task.node_id] = task.in_msg_q
+
+    def register_query_processor(
+            self,
+            query_proc: QueryProcessor) -> None:
+        """
+        Description:
+            Used to register a query processor to the recipient map, so that
+                inbound responses to previous queries can be retrived and
+                queued at the right place.
+        Args:
+            query_proc : query processor object
+        """
+        # Type checking
+        if not isinstance(query_proc, QueryProcessor):
+            raise TypeError('query_proc has to be of type QueryProcessor')
+        self.recipient_map[query_proc] = query_proc.in_msg_q
 
     def graceful_shutdown(self) -> None:
         """

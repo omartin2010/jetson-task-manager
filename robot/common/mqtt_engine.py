@@ -5,7 +5,7 @@ from .singleton import Singleton
 import signal
 import asyncio
 import paho.mqtt.client as mqtt
-import json
+# import json
 from paho.mqtt.client import MQTT_ERR_SUCCESS, MQTT_ERR_NO_CONN
 import traceback
 import socket
@@ -102,7 +102,7 @@ class MQTTEngine(metaclass=Singleton):
 
     async def graceful_shutdown(
             self,
-            s=None) -> None:
+            s=None) -> int:
         """
         Description :
             Graceful shutdown for the MQTT listener
@@ -129,6 +129,7 @@ class MQTTEngine(metaclass=Singleton):
             else:
                 log.info(self.__LOG_GRACEFUL_SHUTDOWN,
                          msg=f'Stopped MQTT client.')
+            ret = self.SUCCESS
         except:
             log.error(self.__LOG_GRACEFUL_SHUTDOWN,
                       msg=f'Exception in shutting down MQTT')
@@ -153,10 +154,13 @@ class MQTTEngine(metaclass=Singleton):
                               msg=f'Exception in stopping task {idx}')
             log.warning(self.__LOG_GRACEFUL_SHUTDOWN,
                         msg=f'Done cancelling tasks.')
+            ret = ret + self.SUCCESS
         except Exception:
             raise Exception(f'Problem in graceful_shutdown in cancelling '
                             f'asyncio tasks. '
                             f'Traceback = {traceback.print_exc()}')
+        finally:
+            return ret
 
     def run(self) -> None:
         """
@@ -177,10 +181,10 @@ class MQTTEngine(metaclass=Singleton):
             self.__mqtt_client.enable_logger(
                 logger=RoboLogger.getSpecificLogger(
                     self.__LOG_THREAD_MQTT))
-            self.__mqtt_client.on_subscribe = self.__cb_mqtt_on_subscribe
-            self.__mqtt_client.on_connect = self.__cb_mqtt_on_connect
-            self.__mqtt_client.on_disconnect = self.__cb_mqtt_on_disconnect
-            self.__mqtt_client.on_message = self.__cb_mqtt_on_message
+            self.__mqtt_client.on_subscribe = self.__cb_on_subscribe
+            self.__mqtt_client.on_connect = self.__cb_on_connect
+            self.__mqtt_client.on_disconnect = self.__cb_on_disconnect
+            self.__mqtt_client.on_message = self.__cb_on_message
             self.__mqtt_client.connect_async(
                 host=self.__mqtt_broker_ip,
                 port=self.__mqtt_port)
@@ -244,7 +248,7 @@ class MQTTEngine(metaclass=Singleton):
         except:
             raise Exception(f'Exception {traceback.print_exc()}')
 
-    def __cb_mqtt_on_connect(self, client, userdata, flags, rc):
+    def __cb_on_connect(self, client, userdata, flags, rc):
         log.info(self.__LOG_ON_CONNECT,
                  msg=f'Connected to MQTT broker. Result code {str(rc)}')
         mqtt_connect_result, self.mqtt_connect_mid = \
@@ -262,7 +266,7 @@ class MQTTEngine(metaclass=Singleton):
                       msg=f'MQTT Broker subscription problem.')
             self.subscribed_mqtt_topics = []
 
-    def __cb_mqtt_on_message(self, client, userdata, message):
+    def __cb_on_message(self, client, userdata, message):
         """ callback function used for the mqtt client (called when
         a new message is publisehd to one of the queues we subscribe to)
         """
@@ -277,7 +281,7 @@ class MQTTEngine(metaclass=Singleton):
         except asyncio.QueueFull:
             raise asyncio.QueueFull('Unable to write to mqtt_message_queue')
 
-    def __cb_mqtt_on_disconnect(self, client, userdata, rc=0):
+    def __cb_on_disconnect(self, client, userdata, rc=0):
         """callback for handling disconnects
         """
         log.warning(self.__LOG_ON_DISCONNECT,
@@ -285,7 +289,7 @@ class MQTTEngine(metaclass=Singleton):
                     f'Should automatically re-connect to broker')
         self.__mqtt_client.loop_stop()
 
-    def __cb_mqtt_on_subscribe(self, client, userdata, mid, granted_qos):
+    def __cb_on_subscribe(self, client, userdata, mid, granted_qos):
         log.debug(self.__LOG_ON_SUBSCRIBE,
                   msg=f'Subscribed to topic(s). Granted '
                       f'QOS = {granted_qos}')
@@ -302,15 +306,10 @@ class MQTTEngine(metaclass=Singleton):
                     raise TypeError(f'out_msg_q should contain '
                                     f'Message class objects')
                 # Construct payload for mqtt message
-                payload = {
-                    'src_node_id': str(msg.src_node_id),
-                    'dst_node_id': str(msg.dst_node_id),
-                    'msg_node_id': str(msg.msg_id)
-                }
-                payload.update(msg.body)
+                payload = msg.serialize()
                 info = self.__mqtt_client.publish(
                     topic=msg.topic,
-                    payload=json.dumps(payload),
+                    payload=payload,
                     qos=msg.qos)
                 self.__last_outbound_msg_info_rc = info.rc
                 log.warning(

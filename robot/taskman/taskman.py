@@ -1,5 +1,5 @@
 # Modules from current package
-from .logger import RoboLogger
+from ..common import RoboLogger
 
 # Other imports
 import queue

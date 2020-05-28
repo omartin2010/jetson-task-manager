@@ -22,20 +22,8 @@ class RoboLogger(metaclass=Singleton):
         loggerName : str : name of the logger
         defaultLevel : logging.INFO, ...
         '''
-        # if RoboLogger.__instance is not None:
-        #     raise Exception(f'The RoboLogger class is a singleton - '
-        #                     f'can\'t create instances.')
-        # else:
-        #    RoboLogger.__instance = self
         self.defaultLevel = defaultLevel
         self.__addNewLogger('root', self.defaultLevel)
-
-    # @staticmethod
-    # def getLogger() -> None:
-    #     """ static access method """
-    #     if RoboLogger.__instance is None:
-    #         RoboLogger()
-    #     return RoboLogger.__instance
 
     @staticmethod
     def getSpecificLogger(loggerName: str) -> logging.Logger:

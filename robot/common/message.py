@@ -1,4 +1,5 @@
 import uuid
+import pickle
 
 
 class Message():
@@ -41,3 +42,46 @@ class Message():
         self.body = body
         self.topic = topic
         self.qos = qos
+
+    def __str__(self):
+        print(f'msg_id = {self.msg_id};\n'
+              f'src_node_id = {self.src_node_id};\n'
+              f'dst_node_id = {self.src_node_id};\n'
+              f'body = {self.src_node_id};\n'
+              f'topic = {self.src_node_id};\n'
+              f'qos = {self.qos};\n')
+
+    def __eq__(self, other) -> bool:
+        """
+        Description:
+            check if all properties are equal...
+        Returns True or False
+        """
+        if type(self) == type(other):
+            ret = self.msg_id == other.msg_id and self.src_node_id == \
+                other.src_node_id and self.dst_node_id == \
+                other.dst_node_id and self.body == \
+                other.body and self.topic == \
+                other.topic and self.qos == other.qos
+        else:
+            raise TypeError(f'TypeError - other is {type(other)} '
+                            f'and should be Message.')
+        return ret
+
+    def serialize(self) -> str:
+        """
+        Description:
+            used to serialize a message before being sent over comm channel
+        Returns :
+            pickled string, ready to send over the wire.
+        """
+        payload = pickle.dumps(self)
+        return payload
+
+    @staticmethod
+    def deserialize(msg):
+        """
+        Description:
+            used to recreate a message ouf of a deserialization operation
+        """
+        return pickle.loads(msg)

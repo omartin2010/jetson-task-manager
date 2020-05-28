@@ -1,6 +1,6 @@
-from robot.logger import RoboLogger
+from robot import RoboLogger
 from robot import MQTTEngine
-from robot.singleton import Singleton
+from robot.common import Singleton
 
 import pytest
 import time
@@ -13,39 +13,6 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 from copy import deepcopy
 
 log = RoboLogger(defaultlevel=logging.DEBUG)
-
-
-@pytest.fixture(scope='session')
-def event_loop():
-    loop = asyncio.get_event_loop()
-    log.warning('fixture_event_loop',
-                msg=f'event_loop fixture event_loop_id : {id(event_loop)}')
-    yield loop
-    log.warning('fixture_event_loop',
-                msg=f'closing loop!')
-    loop.close()
-
-
-@pytest.fixture(scope='session')
-def engine(config_file, event_loop):
-    with open(config_file, 'r') as f:
-        taskmanConfiguration = json.load(f)
-    mqtt_config = taskmanConfiguration['mqtt']
-    log.warning('fixture_engine', f'event_loop id : {id(event_loop)}')
-    ret = MQTTEngine(mqtt_config, event_loop)
-    log.info('fixture_engine', f'MQTTEngine id : {id(ret)}')
-    return ret
-
-
-@pytest.fixture(scope='session')
-def running_engine(engine):
-    log.info('fixture_running_engine',
-             f'running_engine fixture MQTTEngine id : {id(engine)}')
-    engine.run()
-    time.sleep(1)
-    log.warning('fixture_running_engine',
-                f'event_loop id : {id(engine._MQTTEngine__event_loop)}')
-    return engine
 
 
 @pytest.fixture(scope='function')
@@ -64,15 +31,13 @@ def running_engine_test_shutdown(config_file):
     return engine
 
 
-@pytest.mark.test1
-def test_MQTTEngine(engine, mqtt_config):
+def test_MQTTEngine(mqtt_engine, mqtt_config):
     """ Validates that the mqtt_configuration param is of the right type """
-    assert engine._MQTTEngine__mqtt_configuration == mqtt_config
-    log.warning('test_MQTTEngine', f'engine_id = {id(engine)}')
-    assert isinstance(engine.in_msg_q, asyncio.Queue)
+    assert mqtt_engine._MQTTEngine__mqtt_configuration == mqtt_config
+    log.warning('test_MQTTEngine', f'engine_id = {id(mqtt_engine)}')
+    assert isinstance(mqtt_engine.in_msg_q, asyncio.Queue)
 
 
-@pytest.mark.test1
 def test_MQTTEngine_bad_inputs_type():
     """ Validates that with the wrong type, it can't initialize """
     if MQTTEngine in Singleton._instances:
@@ -84,7 +49,6 @@ def test_MQTTEngine_bad_inputs_type():
         'mqtt_configuration has to be a dictionnary'
 
 
-@pytest.mark.test1
 def test_MQTTEngine_bad_inputs_keys():
     """ Validate if missing keys in mqtt_config dict """
     if MQTTEngine in Singleton._instances:
@@ -181,22 +145,22 @@ def test_MQTT_Listener_bad_inputs_values_publishingTopics(mqtt_config):
 
 
 # @pytest.mark.asyncio
-def test_MQTTEngine_run(running_engine):
+def test_MQTTEngine_run(mqtt_running_engine):
     """ validates if the mqtt listener fixture is running """
-    assert running_engine.is_running
-    assert running_engine._MQTTEngine__mqtt_client.is_connected()
+    assert mqtt_running_engine.is_running
+    assert mqtt_running_engine._MQTTEngine__mqtt_client.is_connected()
 
 
-def test_MQTTEngine_connected_topics(running_engine, subscribe_to_topics):
+def test_MQTTEngine_connected_topics(mqtt_running_engine, subscribe_to_topics):
     """ Confirm if subscribed topics are actually subscribed """
-    assert set(running_engine.subscribed_mqtt_topics) == \
+    assert set(mqtt_running_engine.subscribed_mqtt_topics) == \
         set(subscribe_to_topics)
 
 
-def test_MQTTEngine_publish_test(running_engine):
+def test_MQTTEngine_publish_test(mqtt_running_engine):
     """ Confirm if we can publish a message to a test topic """
     payload = {'test': 'test'}
-    msg = running_engine._MQTTEngine__mqtt_client.publish(
+    msg = mqtt_running_engine._MQTTEngine__mqtt_client.publish(
         topic='test123',
         payload=json.dumps(payload),
         qos=1)
@@ -204,7 +168,7 @@ def test_MQTTEngine_publish_test(running_engine):
 
 
 def test_MQTTEngine_on_message_and_dequeue(
-        running_engine,
+        mqtt_running_engine,
         mqtt_config,
         subscribe_to_topics):
     """
@@ -227,7 +191,7 @@ def test_MQTTEngine_on_message_and_dequeue(
         print(f'pytest published to mqtt topic {topic}')
         assert res.rc == MQTT_ERR_SUCCESS
     time.sleep(1)
-    assert running_engine.in_msg_q.qsize() == \
+    assert mqtt_running_engine.in_msg_q.qsize() == \
         len(subscribe_to_topics)
     remaining_topics = deepcopy(subscribe_to_topics)
     i = 0
@@ -235,34 +199,34 @@ def test_MQTTEngine_on_message_and_dequeue(
     # messages pushed on the stack
     while i < len(subscribe_to_topics):
         msg_received_topic, msg_received_payload = \
-            running_engine.in_msg_q.get_nowait()
+            mqtt_running_engine.in_msg_q.get_nowait()
         assert msg_received_payload == payload
         assert msg_received_topic in remaining_topics
         remaining_topics.remove(msg_received_topic)
         print(f'tested topic {msg_received_topic}')
         i += 1
-    assert running_engine.in_msg_q.empty()
+    assert mqtt_running_engine.in_msg_q.empty()
 
 
-def test_MQTTEngine_subscribe_topic(running_engine):
-    val = running_engine.subscribe_topic('test/topic', qos=1)
+def test_MQTTEngine_subscribe_topic(mqtt_running_engine):
+    val = mqtt_running_engine.subscribe_topic('test/topic', qos=1)
     assert val == MQTTEngine.SUCCESS
 
 
-def test_MQTTEngine_unsubscribe_topic(running_engine):
-    val = running_engine.unsubscribe_topic('test/topic')
+def test_MQTTEngine_unsubscribe_topic(mqtt_running_engine):
+    val = mqtt_running_engine.unsubscribe_topic('test/topic')
     assert val == MQTTEngine.SUCCESS
 
 
 @pytest.mark.asyncio
 async def test_MQTTEngine_outbound_message_sender(
-        running_engine,
+        mqtt_running_engine,
         message):
     # await asyncio.sleep(1)
-    await running_engine.out_msg_q.put(message)
+    await mqtt_running_engine.out_msg_q.put(message)
     await asyncio.sleep(1)
-    assert running_engine.out_msg_q.qsize() == 0
-    assert running_engine._MQTTEngine__last_outbound_msg_info_rc == \
+    assert mqtt_running_engine.out_msg_q.qsize() == 0
+    assert mqtt_running_engine._MQTTEngine__last_outbound_msg_info_rc == \
         MQTT_ERR_SUCCESS
 
 

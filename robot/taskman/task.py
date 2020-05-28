@@ -1,4 +1,5 @@
-from .logger import RoboLogger
+from ..common import RoboLogger
+
 from .enums import TaskStatus, StepStatus
 from .query_proc import QueryProcessor
 
