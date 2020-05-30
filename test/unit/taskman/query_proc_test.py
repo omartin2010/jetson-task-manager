@@ -1,19 +1,22 @@
 from robot import RoboLogger
 from robot import QueryProcessor
+from robot import InboundMessageProcessor
 
 import pytest
 import logging
 import uuid
+from collections import deque
 
 log = RoboLogger(defaultlevel=logging.DEBUG)
 
 
 @pytest.fixture(scope='session')
-def query_proc(mqtt_running_engine):
-    """ mqtt_running_engine is there to get the singleton in the QP
+def query_proc(mqtt_config, event_loop):
+    """ mqtt_config is there to get the singleton in the QP
     constructor
     """
-    qp = QueryProcessor()
+    imp = InboundMessageProcessor(event_loop, mqtt_config)
+    qp = QueryProcessor(deque())
     return qp
 
 

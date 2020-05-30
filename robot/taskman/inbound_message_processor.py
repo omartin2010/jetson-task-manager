@@ -26,7 +26,6 @@ class InboundMessageProcessor(metaclass=Singleton):
     def __init__(
             self,
             event_loop: asyncio.BaseEventLoop,
-            taskman_node_id: uuid4,
             mqtt_configuration: dict) -> None:
         """
         Description :
@@ -35,7 +34,6 @@ class InboundMessageProcessor(metaclass=Singleton):
             mqtt_configuration : dict, configuration dict that tells where to
                 connect, which topics to listen to, etc.
             event_loop : event loop for the runner
-            taskman_node_id : instance node id of the task manager
         """
         try:
             # Type and value checking
@@ -44,15 +42,12 @@ class InboundMessageProcessor(metaclass=Singleton):
             if not isinstance(event_loop, asyncio.BaseEventLoop):
                 raise TypeError(f'Constructor requires event_loop to be of '
                                 f'asyncio.BaseEventLoop() class')
-            if not isinstance(taskman_node_id, uuid4):
-                raise TypeError(f'Constructor requires taskman to be of type '
-                                f'uuid4')
             self.event_loop = event_loop
             self.__mqtt_engine = MQTTEngine(
                 mqtt_configuration=mqtt_configuration,
                 event_loop=self.event_loop)
             self.in_msg_q = self.__mqtt_engine.in_msg_q
-            self.recipient_map = {taskman_node_id: deque()}
+            self.recipient_map = {}  # {taskman_node_id: deque()}
             self.__running = False
         except Exception:
             raise (f'Problem in init : traceback = {traceback.print_exc()}')

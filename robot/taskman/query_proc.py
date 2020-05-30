@@ -20,10 +20,6 @@ class QueryProcessor():
     __LOG_SEND_QUERY = 'query_processor_send_query'
     __LOG_INIT = 'query_processor_init'
 
-    __slots__ = ['__mqtt_engine',
-                 'out_msg_q',
-                 'in_msg_q']
-
     def __init__(
             self,
             task_response_deque: deque) -> None:
@@ -35,7 +31,7 @@ class QueryProcessor():
             self.in_msg_q = asyncio.Queue()
             self.task_response_deque = task_response_deque
             self.node_id = uuid4()
-            # Register the query processor
+            # Retrieve the singleton
             self.__inbound_msg_proc = InboundMessageProcessor()
             self.__inbound_msg_proc.register_query_processor(self)
 
