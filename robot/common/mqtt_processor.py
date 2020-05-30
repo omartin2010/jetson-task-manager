@@ -1,6 +1,6 @@
-from ..taskman import TaskManager
+from robot.taskman import TaskManager
 
-from .logger import RoboLogger
+from . import RoboLogger
 
 import asyncio
 import time

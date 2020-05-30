@@ -3,7 +3,6 @@ from robot import Message
 from robot import RoboLogger
 from robot import MQTTEngine
 
-
 import pytest
 import json
 from uuid import uuid4

@@ -1,7 +1,6 @@
-from ..common import RoboLogger
-
-from .enums import TaskStatus, StepStatus
-from .query_proc import QueryProcessor
+from robot.common import RoboLogger
+from robot.taskman.enums import TaskStatus, StepStatus
+from . import QueryProcessor
 
 from collections import deque
 from uuid import uuid4

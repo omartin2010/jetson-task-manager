@@ -1,5 +1,5 @@
-from .logger import RoboLogger
-from .message import Message
+from . import RoboLogger
+from . import Message
 from .singleton import Singleton
 
 import signal

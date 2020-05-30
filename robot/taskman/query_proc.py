@@ -1,7 +1,7 @@
-from ..common import Message
-from ..common import MQTTEngine
-from ..common import RoboLogger
-from .inbound_message_processor import InboundMessageProcessor
+from robot.common import Message
+from robot.common import MQTTEngine
+from robot.common import RoboLogger
+from . import InboundMessageProcessor
 
 import asyncio
 import traceback
@@ -39,7 +39,8 @@ class QueryProcessor():
             self.__inbound_msg_proc = InboundMessageProcessor()
             self.__inbound_msg_proc.register_query_processor(self)
 
-            log.warning(self.__LOG_INIT, msg=f'Initialized query processor.')
+            log.warning(self.__LOG_INIT,
+                        msg=f'Initialized query processor.')
         except Exception:
             log.error(self.__LOG_INIT,
                       msg=f'Error initializing query processor '
@@ -59,9 +60,18 @@ class QueryProcessor():
             # create and listen to the response on that topic
             self.__mqtt_engine.subscribe_topic(topic=msg.topic, qos=msg.qos)
             # Add msg to queue, it will be processed by mqtt engine
-            await self.out_msg_q.put(msg)
+            await self.out_msg_q.put(msg.serialize())
             # Return response (await)
-            return await self.in_msg_q.get()
+            resp = await self.in_msg_q.get()
+            try:
+                resp = resp.deserialize()
+                if not isinstance(resp, Message):
+                    raise TypeError(f'resp has to a Message class')
+            except:
+                log.error(
+                    self.__LOG_SEND_QUERY,
+                    msg=f'Error deserializing message response')
+            return resp.deserialize()
         except asyncio.QueueFull:
             log.error(self.__LOG_SEND_QUERY, msg=f'Outbound queue is full.')
         except Exception:
