@@ -6,7 +6,7 @@ from robot.common.singleton import Singleton
 import asyncio
 from collections import deque
 import traceback
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 log = RoboLogger()
 
@@ -16,12 +16,6 @@ class InboundMessageProcessor(metaclass=Singleton):
     Description:
         Class, singleton, to manage inbound messages
     """
-
-    __slots__ = ["event_loop",
-                 "in_msg_q",
-                 "recipient_map",
-                 "__mqtt_engine",
-                 "__running"]
 
     def __init__(
             self,
@@ -63,25 +57,34 @@ class InboundMessageProcessor(metaclass=Singleton):
             self.__running = True
             while self.__running:
                 # Get q'd message from engine
-                msg = Message(await self.__mqtt_engine.in_msg_q.get())
+                msg = await self.__mqtt_engine.in_msg_q.get()
                 # Get the proper Q for the target
                 q = deque(self.recipient_map[msg.dst_node_id])
                 q.extend(msg)
         except:
             pass
 
-    def register_item(
+    def register(
             self,
-            item_node_id: uuid4) -> None:
+            node_id: UUID,
+            in_msg_q: asyncio.Queue) -> None:
         """
         Description:
             Used to register a new itemto the recipient map, so that inbound
                 messages are sent to the right queue for processing
-
+        Args:
+            node_id : id of the node that registers (uuid)
+            in_msg_q : queue that needs to be registered
         """
-        if not isinstance(item_node_id, uuid4):
-            raise TypeError('task has to be of type Task')
-        self.recipient_map[item_node_id.node_id] = item_node_id.in_msg_q
+        if not isinstance(node_id, UUID):
+            raise TypeError('node_id has to be of type UUID')
+        if not isinstance(in_msg_q, asyncio.Queue):
+            raise TypeError('in_msg_q has to be of type asyncio.Queue')
+        self.recipient_map[node_id] = in_msg_q
+
+    @staticmethod
+    def get_instance():
+        return Singleton._instances[__class__]
 
     def graceful_shutdown(self) -> None:
         """

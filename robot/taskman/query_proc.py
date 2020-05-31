@@ -21,19 +21,19 @@ class QueryProcessor():
     __LOG_INIT = 'query_processor_init'
 
     def __init__(
-            self,
-            task_response_deque: deque) -> None:
+            self) -> None:
+            # task_response_deque: deque) -> None:
         try:
             # Type and value checking if applicable
             # Use the out_msg_q of the singleton MQTTEngine
-            self.__mqtt_engine = MQTTEngine()
+            self.__mqtt_engine = MQTTEngine.get_instance()
             self.out_msg_q = self.__mqtt_engine.out_msg_q
             self.in_msg_q = asyncio.Queue()
-            self.task_response_deque = task_response_deque
+            # self.task_response_deque = task_response_deque
             self.node_id = uuid4()
             # Retrieve the singleton
-            self.__inbound_msg_proc = InboundMessageProcessor()
-            self.__inbound_msg_proc.register_query_processor(self)
+            self.__inbound_msg_proc = InboundMessageProcessor.get_instance()
+            self.__inbound_msg_proc.register(self.node_id, self.in_msg_q)
 
             log.warning(self.__LOG_INIT,
                         msg=f'Initialized query processor.')

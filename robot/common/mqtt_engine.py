@@ -99,6 +99,10 @@ class MQTTEngine(metaclass=Singleton):
         except Exception:
             raise
 
+    @staticmethod
+    def get_instance():
+        return Singleton._instances[__class__]
+
     async def graceful_shutdown(
             self,
             s=None) -> int:

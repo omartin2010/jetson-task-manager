@@ -16,21 +16,13 @@ class Task(ABC):
         Class to create a new task. ABC, has to use a derived task
     """
 
-    __slots__ = ["node_id",
-                 "start_time",
-                 "end_time",
-                 "status",
-                 "in_msg_q",
-                 "current_step_status",
-                 "query_proc"]
-
     def __init__(self):
         self.node_id = uuid4()
         self.start_time = time.time()
         self.status = TaskStatus.CREATED
         self.in_msg_q = deque()
         self.current_step_status = StepStatus.CREATED
-        self.query_proc = QueryProcessor()
+        self.query_proc = QueryProcessor(self.in_msg_q)
 
     @abstractmethod
     def execute(self):

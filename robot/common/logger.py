@@ -26,6 +26,10 @@ class RoboLogger(metaclass=Singleton):
         self.__addNewLogger('root', self.defaultLevel)
 
     @staticmethod
+    def get_instance():
+        return Singleton._instances[__class__]
+
+    @staticmethod
     def getSpecificLogger(loggerName: str) -> logging.Logger:
         if loggerName in RoboLogger.__loggers:
             return logging.getLogger()

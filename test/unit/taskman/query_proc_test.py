@@ -5,9 +5,9 @@ from robot import InboundMessageProcessor
 import pytest
 import logging
 import uuid
-from collections import deque
+# from collections import deque
 
-log = RoboLogger(defaultlevel=logging.DEBUG)
+log = RoboLogger(defaultLevel=logging.DEBUG)
 
 
 @pytest.fixture(scope='session')
@@ -16,7 +16,8 @@ def query_proc(mqtt_config, event_loop):
     constructor
     """
     imp = InboundMessageProcessor(event_loop, mqtt_config)
-    qp = QueryProcessor(deque())
+    qp = QueryProcessor()
+    # qp = QueryProcessor(deque())
     return qp
 
 
