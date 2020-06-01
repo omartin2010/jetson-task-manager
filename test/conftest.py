@@ -3,6 +3,7 @@ from robot import Message
 from robot import RoboLogger
 from robot import MQTTEngine
 
+from typing import Any
 import pytest
 import json
 from uuid import uuid4
@@ -11,7 +12,7 @@ import logging
 import asyncio
 import os
 
-log = RoboLogger(defaultlevel=logging.DEBUG)
+log = RoboLogger(defaultLevel=logging.DEBUG)
 
 
 def pytest_addoption(parser):
@@ -92,3 +93,31 @@ def mqtt_running_engine(mqtt_engine):
     log.warning('fixture_running_engine',
                 f'event_loop id : {id(mqtt_engine._MQTTEngine__event_loop)}')
     return mqtt_engine
+
+
+class MockImp():
+    def __init__(self):
+        pass
+
+    def register(self, node_id, in_msg_q: asyncio.Queue):
+        return {node_id: in_msg_q}
+
+    @staticmethod
+    def get_instance():
+        return MockImp()
+
+
+class MockMQTTEngine():
+    def __init__(self):
+        self.out_msg_q = asyncio.Queue
+
+    def subscribe_topic(self, topic, qos):
+        return None
+
+    @staticmethod
+    def get_instance():
+        return MockMQTTEngine()
+
+
+class MockMessage():
+    pass

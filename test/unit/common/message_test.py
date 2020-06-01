@@ -6,7 +6,7 @@ import logging
 import uuid
 from copy import deepcopy
 
-log = RoboLogger(defaultlevel=logging.DEBUG)
+log = RoboLogger(defaultLevel=logging.DEBUG)
 
 
 @pytest.fixture(scope='session')

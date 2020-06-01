@@ -12,7 +12,7 @@ import paho.mqtt.client as mqtt
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from copy import deepcopy
 
-log = RoboLogger(defaultlevel=logging.DEBUG)
+log = RoboLogger(defaultLevel=logging.DEBUG)
 
 
 @pytest.fixture(scope='function')

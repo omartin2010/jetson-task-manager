@@ -1,23 +1,35 @@
 from robot import RoboLogger
 from robot import QueryProcessor
 from robot import InboundMessageProcessor
+import robot.taskman.query_proc
+from conftest import MockImp, MockMQTTEngine
 
 import pytest
+# import asyncio
 import logging
 import uuid
-# from collections import deque
+from _pytest.monkeypatch import monkeysession
 
 log = RoboLogger(defaultLevel=logging.DEBUG)
 
 
 @pytest.fixture(scope='session')
-def query_proc(mqtt_config, event_loop):
+def query_proc(mqtt_config, event_loop, monkeysession):
     """ mqtt_config is there to get the singleton in the QP
     constructor
     """
-    imp = InboundMessageProcessor(event_loop, mqtt_config)
+    def ret_none():
+        return None
+
+    monkeysession.setattr(
+        robot.taskman.query_proc,
+        'InboundMessageProcessor',
+        MockImp)
+    monkeysession.setattr(
+        robot.taskman.query_proc,
+        'MQTTEngine',
+        MockMQTTEngine)
     qp = QueryProcessor()
-    # qp = QueryProcessor(deque())
     return qp
 
 
