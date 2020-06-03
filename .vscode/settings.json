@@ -15,5 +15,6 @@
     "python.languageServer": "Node",
     "python.blobName": "d67e4491-7116-42e0-8d18-5394f74187ce",
     "python.analysis.downloadChannel": "daily",
-    "python.packageName": "Python-Language-Server",
+    "python.packageName": "Python-Language-Server"
+    // "python.autoComplete.extraPaths": ["./robot", "./test"]
 }

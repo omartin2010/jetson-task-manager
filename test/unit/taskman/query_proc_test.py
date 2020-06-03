@@ -60,12 +60,12 @@ def test_QueryProcessor(query_proc):
 
 
 @pytest.mark.asyncio
-async def test_Query(query_proc, message: Message):
+async def test_QueryProcessor_query(query_proc, message: Message):
 
     # Simulate a listener on that topic
     # Put a message on the queue and publish to it
     resp = await query_proc.query(message)    # type: Message
-
+    assert isinstance(resp, Message)
     # Validate that we are retrieving the response
     assert resp.src_node_id == message.dst_node_id
     assert resp.dst_node_id == message.src_node_id
