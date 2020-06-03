@@ -60,14 +60,14 @@ class QueryProcessor():
             # Return response (await)
             resp = await self.in_msg_q.get()
             try:
-                resp = resp.deserialize()
+                resp = Message.deserialize(resp)
                 if not isinstance(resp, Message):
                     raise TypeError(f'resp has to a Message class')
             except:
                 log.error(
                     self.__LOG_SEND_QUERY,
                     msg=f'Error deserializing message response')
-            return resp.deserialize()
+            return resp
         except asyncio.QueueFull:
             log.error(self.__LOG_SEND_QUERY, msg=f'Outbound queue is full.')
         except Exception:

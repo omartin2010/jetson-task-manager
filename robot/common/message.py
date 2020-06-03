@@ -78,8 +78,8 @@ class Message():
         payload = pickle.dumps(self)
         return payload
 
-    @staticmethod
-    def deserialize(msg):
+    @classmethod
+    def deserialize(cls, msg) -> 'Message':
         """
         Description:
             used to recreate a message ouf of a deserialization operation

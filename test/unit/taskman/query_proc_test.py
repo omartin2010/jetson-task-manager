@@ -1,8 +1,8 @@
 from robot import RoboLogger
 from robot import QueryProcessor
-from robot import InboundMessageProcessor
+from robot import Message
 import robot.taskman.query_proc
-from conftest import MockImp, MockMQTTEngine
+from conftest import MockImp, MockMQTTEngine, MockAsyncioQueryQueue
 
 import pytest
 # import asyncio
@@ -29,6 +29,11 @@ def query_proc(mqtt_config, event_loop, monkeysession):
         robot.taskman.query_proc,
         'MQTTEngine',
         MockMQTTEngine)
+    monkeysession.setattr(
+        robot.taskman.query_proc.asyncio,
+        'Queue',
+        MockAsyncioQueryQueue
+    )
     qp = QueryProcessor()
     return qp
 
@@ -55,14 +60,16 @@ def test_QueryProcessor(query_proc):
 
 
 @pytest.mark.asyncio
-async def test_Query(query_proc, message):
+async def test_Query(query_proc, message: Message):
 
     # Simulate a listener on that topic
     # Put a message on the queue and publish to it
-    await query_proc.query(message)
-
-    # Respond to the query
+    resp = await query_proc.query(message)    # type: Message
 
     # Validate that we are retrieving the response
-    await query_proc.out_msg_q.put(message.serialize())
-    assert True
+    assert resp.src_node_id == message.dst_node_id
+    assert resp.dst_node_id == message.src_node_id
+    assert resp.qos == message.qos
+    assert list(resp.body.keys()) == ['test_response_message']
+    assert list(resp.body.values()) == ['test_response_value']
+    assert resp.topic == message.topic

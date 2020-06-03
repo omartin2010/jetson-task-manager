@@ -52,7 +52,7 @@ def taskman(config_file):
 
 
 @pytest.fixture(scope='session')
-def message():
+def message() -> Message:
     src_id = uuid4()
     dst_id = uuid4()
     return Message(src_node_id=src_id,
@@ -109,9 +109,12 @@ class MockImp():
 
 class MockMQTTEngine():
     def __init__(self):
-        self.out_msg_q = asyncio.Queue
+        self.out_msg_q = MockAsyncioQueryQueue()    # asyncio.Queue
 
     def subscribe_topic(self, topic, qos):
+        return None
+
+    def unsubscribe_topic(self, topic):
         return None
 
     @staticmethod
@@ -119,5 +122,21 @@ class MockMQTTEngine():
         return MockMQTTEngine()
 
 
-class MockMessage():
-    pass
+class MockAsyncioQueryQueue():
+    def __init__(self):
+        pass
+
+    @classmethod
+    async def put(cls, item: Message):
+        cls.message = Message.deserialize(item)
+
+    @classmethod
+    async def get(cls):
+        return_msg = Message(
+            src_node_id=cls.message.dst_node_id,
+            dst_node_id=cls.message.src_node_id,
+            body={'test_response_message': 'test_response_value'},
+            topic=cls.message.topic,
+            qos = cls.message.qos
+        )
+        return return_msg.serialize()
